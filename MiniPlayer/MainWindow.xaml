@@ -184,8 +184,10 @@
             </TabItem>
         </TabControl>
 
-        <Button x:Name="btnExit" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" 
-                Style="{StaticResource btnExitStyle}" Click="btnExit_Click"/>
+        <StackPanel x:Name="GlobalButton" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button x:Name="btnMini" Style="{StaticResource btnMiniStyle}" Click="btnMini_Click"/>
+            <Button x:Name="btnExit" Style="{StaticResource btnExitStyle}" Click="btnExit_Click"/>
+        </StackPanel>
 
     </Grid>
 

@@ -40,19 +40,6 @@ namespace MiniPlayer
             TreeViewRootItems = new ObservableCollection<FileSystemItem>();
             TreeViewRootItemsView = CollectionViewSource.GetDefaultView(TreeViewRootItems);
 
-            //// 清除舊的排序描述
-            //TreeViewRootItemsView.SortDescriptions.Clear();
-
-            //// 將 ICollectionView 轉換為 ListCollectionView 以設定 CustomSort
-            //if (TreeViewRootItemsView is ListCollectionView treeCollectionView)
-            //{
-            //    treeCollectionView.CustomSort = new CustomFileSystemItemComparer();
-            //}
-            //else
-            //{
-            //    System.Diagnostics.Debug.WriteLine("TreeViewRootItemsView is not a ListCollectionView. CustomSort cannot be applied.");
-            //}
-
             // 清除舊的排序描述
             TreeViewRootItemsView.SortDescriptions.Clear();
             // 設置磁碟機字母順序排序器
@@ -137,7 +124,12 @@ namespace MiniPlayer
         private void btnExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
-        }          
+        }
+
+        private void btnMini_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
 
         // 視窗關閉時停止監聽，釋放資源
         private void MainWindow_Closed(object? sender, EventArgs e)
