@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
+using static MiniPlayer.CustomFileSystemItemComparer;
 using SWF = System.Windows.Forms;
 
 namespace MiniPlayer
@@ -35,10 +36,36 @@ namespace MiniPlayer
             this.Width = workingArea.Width;
             this.Height = workingArea.Height;
 
-            // 初始化 Treeview 集合
+            // Treeview 集合
             TreeViewRootItems = new ObservableCollection<FileSystemItem>();
             TreeViewRootItemsView = CollectionViewSource.GetDefaultView(TreeViewRootItems);
-            TreeViewRootItemsView.SortDescriptions.Add(new SortDescription("Name", ListSortDirection.Ascending));
+
+            //// 清除舊的排序描述
+            //TreeViewRootItemsView.SortDescriptions.Clear();
+
+            //// 將 ICollectionView 轉換為 ListCollectionView 以設定 CustomSort
+            //if (TreeViewRootItemsView is ListCollectionView treeCollectionView)
+            //{
+            //    treeCollectionView.CustomSort = new CustomFileSystemItemComparer();
+            //}
+            //else
+            //{
+            //    System.Diagnostics.Debug.WriteLine("TreeViewRootItemsView is not a ListCollectionView. CustomSort cannot be applied.");
+            //}
+
+            // 清除舊的排序描述
+            TreeViewRootItemsView.SortDescriptions.Clear();
+            // 設置磁碟機字母順序排序器
+            if (TreeViewRootItemsView is ListCollectionView treeCollectionView)
+            {
+                treeCollectionView.CustomSort = new DriveLetterComparer();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("TreeViewRootItemsView is not a ListCollectionView. CustomSort cannot be applied.");
+            }
+
+            // ListView 集合
             CurrentDirectoryItems = new ObservableCollection<FileSystemItem>();
             CurrentDirectoryItemsView = CollectionViewSource.GetDefaultView(CurrentDirectoryItems);
 

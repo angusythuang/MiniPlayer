@@ -103,11 +103,6 @@
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       FontSize="28" >
                                 <TreeView.Resources>
-                                    <CollectionViewSource x:Key="SortedTreeItems" Source="{Binding TreeViewRootItems}">
-                                        <CollectionViewSource.SortDescriptions>
-                                            <scm:SortDescription PropertyName="FullPath" Direction="Ascending"/>
-                                        </CollectionViewSource.SortDescriptions>
-                                    </CollectionViewSource>
 
                                     <HierarchicalDataTemplate DataType="{x:Type local:FileSystemItem}" ItemsSource="{Binding ChildrenView}">
                                         <StackPanel Orientation="Horizontal">
@@ -118,7 +113,7 @@
                                 </TreeView.Resources>
 
                                 <TreeView.ItemsSource>
-                                    <Binding Source="{StaticResource SortedTreeItems}"/>
+                                    <Binding Path="TreeViewRootItems"/>
                                 </TreeView.ItemsSource>
 
                                 <TreeView.ItemContainerStyle>

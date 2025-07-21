@@ -30,5 +30,23 @@ namespace MiniPlayer
             }
             return 0;
         }
+
+        // <summary>
+        /// 為頂層磁碟機提供按磁碟機字母順序的排序邏輯（例如，C:\, D:\, E:\）。
+        /// </summary>
+        public class DriveLetterComparer : IComparer
+        {
+            public int Compare(object? x, object? y)
+            {
+                if (x is FileSystemItem item1 && y is FileSystemItem item2)
+                {
+                    // 按 FullPath 的磁碟機字母進行簡單字母順序比較
+                    string drive1 = item1.FullPath ?? string.Empty;
+                    string drive2 = item2.FullPath ?? string.Empty;
+                    return string.Compare(drive1, drive2, StringComparison.OrdinalIgnoreCase);
+                }
+                return 0;
+            }
+        }
     }
 }

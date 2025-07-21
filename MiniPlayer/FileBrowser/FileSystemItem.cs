@@ -129,6 +129,16 @@ namespace MiniPlayer
             _children = new ObservableCollection<FileSystemItem>();
             _childrenView = CollectionViewSource.GetDefaultView(_children);
 
+            // 設置自然排序
+            if (_childrenView is ListCollectionView childrenCollectionView)
+            {
+                childrenCollectionView.CustomSort = new CustomFileSystemItemComparer();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("ChildrenView is not a ListCollectionView. CustomSort cannot be applied.");
+            }
+
             if (IsDirectory || IsDrive)
             {
                 try
