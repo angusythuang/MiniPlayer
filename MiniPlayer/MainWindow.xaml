@@ -1,0 +1,197 @@
+﻿<Window x:Class="MiniPlayer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MiniPlayer"
+        xmlns:converters="clr-namespace:MiniPlayer.Converters"
+        xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+        mc:Ignorable="d"
+        Icon="/MiniPlayer;component/Assert/favicon.ico"
+        Title="MiniPlayer" Background="Black" ResizeMode="NoResize" 
+        WindowStyle="None" 
+        AllowsTransparency="True">
+    <Window.Resources>
+        <ResourceDictionary>
+            <!-- 合併外部 Style -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/StyleResource.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- 設定lvFileList欄位寬度用 -->
+            <converters:WidthConverter x:Key="WidthConverter" />
+
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="10"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/>
+        </Grid.ColumnDefinitions>
+
+
+        <TabControl Grid.Row="1" Grid.Column="1">
+            <TabItem Header="Power Pannel">
+                <Grid x:Name="PowerPanelMain">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="25*"/>
+                        <RowDefinition Height="50*"/>
+                        <RowDefinition Height="25*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="33*"/>
+                        <ColumnDefinition Width="34*"/>
+                        <ColumnDefinition Width="33*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="5*"/>
+                            <RowDefinition Height="5*"/>
+                            <RowDefinition Height="5*"/>
+                        </Grid.RowDefinitions>
+                        <Button x:Name="btnSleep" Grid.Row="0" Style="{StaticResource PowerPanelStyle}" Background="Yellow" Click="btnSleep_Click">
+                            <Viewbox>
+                                <TextBlock Style="{StaticResource NotoText}" Text="休眠" />
+                            </Viewbox>
+                        </Button>
+                        <Button x:Name="btnReboot" Grid.Row="1" Style="{StaticResource PowerPanelStyle}" Background="Orange" Click="btnReboot_Click">
+                            <Viewbox>
+                                <TextBlock Style="{StaticResource NotoText}" Text="重開機"/>
+                            </Viewbox>
+                        </Button>
+                        <Button x:Name="btnShutdown" Grid.Row="2" Style="{StaticResource PowerPanelStyle}" Background="Red" Click="btnShutdown_Click">
+                            <Viewbox>
+                                <TextBlock Style="{StaticResource NotoText}" Text="關機" />
+                            </Viewbox>
+                        </Button>
+                    </Grid>
+                    <Viewbox Grid.Row="2" Grid.Column="2" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" >
+                        <TextBlock x:Name="PowerPanelClock" Style="{StaticResource NotoText}" Text=""/>
+                    </Viewbox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="File Browser">
+                <Grid x:Name="FileBrowserMain"  Background="#F4F4F4">
+                    <Grid.Style>
+                        <Style TargetType="{x:Type Grid}">
+                            <Style.Triggers>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter Property="Background" Value="#F4F4F4"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="25*"/>
+                        <ColumnDefinition Width="75*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid x:Name="TreeView" Grid.Column="0">
+                        <Border BorderThickness="0" Background="#F4F4F4">
+                            <TreeView x:Name="tvNVPane"                                                                    
+                                      SelectedItemChanged="TreeView_SelectedItemChanged"
+                                      PreviewMouseLeftButtonDown="tvNVPane_PreviewMouseLeftButtonDown"
+                                      Background="White" Margin="5,5,0,5"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      FontSize="28" >
+                                <TreeView.Resources>
+                                    <CollectionViewSource x:Key="SortedTreeItems" Source="{Binding TreeViewRootItems}">
+                                        <CollectionViewSource.SortDescriptions>
+                                            <scm:SortDescription PropertyName="FullPath" Direction="Ascending"/>
+                                        </CollectionViewSource.SortDescriptions>
+                                    </CollectionViewSource>
+
+                                    <HierarchicalDataTemplate DataType="{x:Type local:FileSystemItem}" ItemsSource="{Binding ChildrenView}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Image Source="{Binding Icon}" Margin="0,0,5,0"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </HierarchicalDataTemplate>
+                                </TreeView.Resources>
+
+                                <TreeView.ItemsSource>
+                                    <Binding Source="{StaticResource SortedTreeItems}"/>
+                                </TreeView.ItemsSource>
+
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource FileTreeView}">
+                                        <EventSetter Event="TreeViewItem.Expanded" Handler="TreeViewItem_Expanded"/>
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                            </TreeView>
+                        </Border>
+                    </Grid>
+
+                    <Grid x:Name="FileList" Grid.Column="1" Margin="0,5,5,5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" BorderThickness="0" Background="#F4F4F4">
+                            <DockPanel Height="40" Margin="5">
+                                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,5,0">
+                                    <Button x:Name="btnBack" Content="←" IsEnabled="False" Style="{StaticResource btnNavi}" Click="btnBack_Click" />
+                                    <Button x:Name="btnNext" Content="→" IsEnabled="False" Style="{StaticResource btnNavi}" Click="btnNext_Click"/>
+                                    <Button x:Name="btnUp" Content="↑" IsEnabled="False" Style="{StaticResource btnNavi}" Click="btnUp_Click"/>
+                                </StackPanel>
+
+                                <TextBox x:Name="tbPath" Text="" VerticalContentAlignment="Center" IsReadOnly="True" />
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Row="1"  BorderThickness="0" Background="#F4F4F4">
+                            <ListView x:Name="lvFileList" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListView.ItemsSource>
+                                    <Binding Path="CurrentDirectoryItemsView"/>
+                                </ListView.ItemsSource>
+
+                                <ListView.ItemContainerStyle >
+                                    <Style TargetType="ListViewItem" BasedOn="{StaticResource FileListViewItemStyle}">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="名稱"
+                                                    Width="{Binding RelativeSource={RelativeSource AncestorType=ListView},
+                                                    Path=ActualWidth, Converter={StaticResource WidthConverter}}">
+                                            <GridViewColumn.HeaderContainerStyle>
+                                                <Style TargetType="{x:Type GridViewColumnHeader}">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                                    <Setter Property="FontSize" Value="33"/>
+                                                </Style>
+                                            </GridViewColumn.HeaderContainerStyle>
+
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Image Source="{Binding Icon}" Margin="0,0,5,0"/>
+                                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Button x:Name="btnExit" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2" 
+                Style="{StaticResource btnExitStyle}" Click="btnExit_Click"/>
+
+    </Grid>
+
+</Window>
