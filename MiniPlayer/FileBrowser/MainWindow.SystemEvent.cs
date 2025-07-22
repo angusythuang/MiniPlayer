@@ -114,8 +114,7 @@ namespace MiniPlayer
                         if (tvNVPane.SelectedItem == null)
                         {
                             CurrentDirectoryItems.Clear();
-                            // tbPath.Text = string.Empty; // 由 LoadItemsForListView 統一處理
-                            LoadItemsForListView(string.Empty); // 傳遞空字串或預設路徑
+                            LoadItemsForListView(null); // 傳遞空字串或預設路徑
                         }
                     }
                     else

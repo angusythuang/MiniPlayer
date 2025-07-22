@@ -13,7 +13,7 @@ namespace MiniPlayer
         // 導航歷史
         private class HistoryEntry // 或者 private class HistoryEntry
         {
-            public required string Path { get; set; }
+            public required FileSystemItem Item { get; set; }
         }
         private List<HistoryEntry> _navigationHistory = new List<HistoryEntry>();
         private int _currentHistoryIndex = -1;
@@ -68,9 +68,11 @@ namespace MiniPlayer
             if (_currentHistoryIndex > 0)
             {
                 _currentHistoryIndex--;
-                string targetPath = _navigationHistory[_currentHistoryIndex].Path;
-                System.Diagnostics.Debug.WriteLine($"Navigating back to: {targetPath}, HistoryIndex: {_currentHistoryIndex}");
-                LoadItemsForListView(targetPath);
+                var targetItem = _navigationHistory[_currentHistoryIndex].Item;
+                System.Diagnostics.Debug.WriteLine($"Navigating back to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
+                targetItem.LoadChildren();
+                targetItem.IsSelected = true;
+                LoadItemsForListView(targetItem);
                 // Optionally, update the TreeView selection
                 // You would need to implement a method to select the item in TreeView
                 // based on the path, which might involve expanding nodes.
@@ -85,10 +87,11 @@ namespace MiniPlayer
             if (_currentHistoryIndex < _navigationHistory.Count - 1)
             {
                 _currentHistoryIndex++;
-                string targetPath = _navigationHistory[_currentHistoryIndex].Path;
-                System.Diagnostics.Debug.WriteLine($"Navigating next to: {targetPath}, HistoryIndex: {_currentHistoryIndex}");
-                LoadItemsForListView(targetPath);
-                // Optionally, update the TreeView selection
+                var targetItem = _navigationHistory[_currentHistoryIndex].Item;
+                System.Diagnostics.Debug.WriteLine($"Navigating next to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
+                targetItem.LoadChildren();
+                targetItem.IsSelected = true;
+                LoadItemsForListView(targetItem);
             }
         }
 
@@ -97,29 +100,29 @@ namespace MiniPlayer
         /// </summary>
         private void btnUp_Click(object sender, RoutedEventArgs e)
         {
-            string currentPath = tbPath.Text;
-            if (!string.IsNullOrEmpty(currentPath))
-            {
-                try
-                {
-                    DirectoryInfo? parent = Directory.GetParent(currentPath);
-                    if (parent != null)
-                    {
-                        string parentPath = parent.FullName;
-                        LoadItemsForListView(parentPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
-                        // Optionally, update the TreeView selection
-                    }
-                    else
-                    {
-                        // Already at the root of a drive, disable Up button (handled by UpdateNavigationButtonStates)
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"無法導航到上一級目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            UpdateNavigationButtonStates();
+            //string currentPath = tbPath.Text;
+            //if (!string.IsNullOrEmpty(currentPath))
+            //{
+            //    try
+            //    {
+            //        DirectoryInfo? parent = Directory.GetParent(currentPath);
+            //        if (parent != null)
+            //        {
+            //            string parentPath = parent.FullName;
+            //            LoadItemsForListView(parentPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
+            //            // Optionally, update the TreeView selection
+            //        }
+            //        else
+            //        {
+            //            // Already at the root of a drive, disable Up button (handled by UpdateNavigationButtonStates)
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        MessageBox.Show($"無法導航到上一級目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+            //    }
+            //}
+            //UpdateNavigationButtonStates();
         }
 
         /// <summary>
@@ -129,13 +132,13 @@ namespace MiniPlayer
         {
             for (int i = _navigationHistory.Count - 1; i >= 0; i--)
             {
-                string historyPath = _navigationHistory[i].Path;
+                string historyPath = _navigationHistory[i].Item.FullPath;
                 bool isValid = !string.IsNullOrEmpty(historyPath) && Directory.Exists(historyPath);
                 if (isValid)
                 {
                     try
                     {
-                        Directory.GetDirectories(historyPath); // 檢查權限
+                        Directory.GetDirectories(historyPath);
                     }
                     catch
                     {
@@ -143,7 +146,7 @@ namespace MiniPlayer
                     }
                 }
 
-                if (!isValid && i != 0) // 保護索引 0
+                if (!isValid && i != 0)
                 {
                     if (i <= _currentHistoryIndex)
                     {
@@ -160,5 +163,5 @@ namespace MiniPlayer
             }
             _currentHistoryIndex = Math.Max(-1, _currentHistoryIndex);
         }
-    }
+    }    
 }

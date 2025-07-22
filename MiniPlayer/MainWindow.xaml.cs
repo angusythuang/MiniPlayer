@@ -69,45 +69,28 @@ namespace MiniPlayer
                 System.Diagnostics.Debug.WriteLine("CurrentDirectoryItemsView is not a ListCollectionView. CustomSort cannot be applied.");
             }
 
-            // 將視窗的 DataContext 設定為自身，這樣 XAML 就能直接綁定到這裡的屬性
-            this.DataContext = this;
-
             // 載入磁碟機到 TreeView
             LoadDrivesIntoTreeView();
 
-            // 嘗試找到第一個可用的磁碟機 (通常為 C 槽)
-            string? initialPath = null;
-            var firstDrive = DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady);
-            if (firstDrive != null)
-            {
-                initialPath = firstDrive.RootDirectory.FullName;
-                // >>> 在找到初始路徑後，立即載入 ListView 的內容 <<<
-                LoadItemsForListView(initialPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
-            }
+            // 將視窗的 DataContext 設定為自身，這樣 XAML 就能直接綁定到這裡的屬性
+            this.DataContext = this;
 
-            // 延遲選中第一個磁碟機，直到 TreeView 確定已載入完畢
-            if (firstDrive != null)
+            if (DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady) != null)
             {
-                // 使用 Dispatcher.BeginInvoke，讓這段程式碼在 UI 準備好後才執行
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    var driveItemToSelect = TreeViewRootItems.FirstOrDefault(item => item.IsDrive && item.FullPath == firstDrive.RootDirectory.FullName);
+                    var driveItemToSelect = TreeViewRootItems.FirstOrDefault(item => item.IsDrive);
                     if (driveItemToSelect != null)
                     {
-                        // 設定 IsSelected 為 true，讓 TreeViewItem 被選中
                         driveItemToSelect.IsSelected = true;
-
-                        // 確保選中的項目在可視範圍內 (如果需要滾動)
-                        // 這裡需要確保 TreeViewItem 的容器已生成
                         TreeViewItem? treeViewItem = tvNVPane.ItemContainerGenerator.ContainerFromItem(driveItemToSelect) as TreeViewItem;
                         if (treeViewItem != null)
                         {
                             treeViewItem.BringIntoView();
                         }
                     }
-                }), DispatcherPriority.Loaded); // 使用 DispatcherPriority.Loaded 表示在 UI 載入完成後執行
+                }), DispatcherPriority.Loaded);
             }
-
 
             // 啟用時鐘
             _clockHandler = new ClockHandler(PowerPanelClock);

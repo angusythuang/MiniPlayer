@@ -3,8 +3,10 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Threading;
+using static MiniPlayer.CustomFileSystemItemComparer;
 
 namespace MiniPlayer
 {
@@ -77,7 +79,8 @@ namespace MiniPlayer
                 // 如果選定的是目錄，則載入其內容到 ListView
                 if (selectedItem.IsDirectory || selectedItem.IsDrive)
                 {
-                    LoadItemsForListView(selectedItem.FullPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
+                    selectedItem.LoadChildren();
+                    LoadItemsForListView(selectedItem);
                 }
                 else
                 {
@@ -106,7 +109,8 @@ namespace MiniPlayer
                         // 如果是相同項目被重複點擊，手動觸發 ListView 的內容載入
                         if (clickedItem.IsDirectory || clickedItem.IsDrive)
                         {
-                            LoadItemsForListView(clickedItem.FullPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
+                            clickedItem.LoadChildren(); // 重新載入子目錄
+                            LoadItemsForListView(clickedItem); // tbPath.Text 會在 LoadItemsForListView 內部更新
                         }
                     }
                 }
@@ -123,17 +127,5 @@ namespace MiniPlayer
             return null;
         }
 
-        private FileSystemItem? FindTreeViewItem(FileSystemItem parent, string path)
-        {
-            if (string.Equals(parent.FullPath, path, StringComparison.OrdinalIgnoreCase)) return parent;
-
-            parent.LoadChildren();
-            foreach (var child in parent.Children)
-            {
-                var found = FindTreeViewItem(child, path);
-                if (found != null) return found;
-            }
-            return null;
-        }
     }
 }
