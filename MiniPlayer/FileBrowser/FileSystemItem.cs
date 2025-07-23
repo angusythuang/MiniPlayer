@@ -28,7 +28,7 @@ namespace MiniPlayer
             _fullPath = path;
             IsDirectory = isDirectory;
             IsDrive = isDrive;
-            _parent = parent; // 設置父項目
+            _parent = parent; // 設定父項目
             _children = new ObservableCollection<FileSystemItem>();
             _childrenView = CollectionViewSource.GetDefaultView(_children);
             if (_childrenView is ListCollectionView childrenCollectionView)
@@ -185,7 +185,7 @@ namespace MiniPlayer
                         {
                             // 檢查是否有讀取權限
                             if (HasReadAccess(dir))
-                                _children.Add(new FileSystemItem(dir, true, false, this)); // 設置 Parent 為當前項目
+                                _children.Add(new FileSystemItem(dir, true, false, this)); // 設定 Parent 為當前項目
                         }
                     }
                 }
@@ -193,7 +193,7 @@ namespace MiniPlayer
                 {
                     //_children.Add(new FileSystemItem("Access Denied", false, false, this) { Name = "無權限訪問" });
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //_children.Add(new FileSystemItem("Error", false, false, this) { Name = $"載入錯誤: {ex.Message}" });
                 }

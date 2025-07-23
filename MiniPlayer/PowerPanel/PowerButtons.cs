@@ -29,7 +29,7 @@ namespace MiniPlayer
             {
                 // 獲取錯誤碼以進行更詳細的診斷
                 int errorCode = Marshal.GetLastWin32Error();
-                MessageBox.Show($"無法進入睡眠。錯誤碼: {errorCode}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{DebugInfo.Current()} 無法進入睡眠。錯誤碼: {errorCode}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -42,7 +42,7 @@ namespace MiniPlayer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"無法重啟電腦：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{DebugInfo.Current()} 無法重啟：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -54,7 +54,7 @@ namespace MiniPlayer
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"無法關機電腦：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{DebugInfo.Current()} 無法關機：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

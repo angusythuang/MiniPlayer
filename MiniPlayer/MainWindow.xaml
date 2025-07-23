@@ -97,8 +97,8 @@
                     <Grid x:Name="TreeView" Grid.Column="0">
                         <Border BorderThickness="0" Background="#F4F4F4">
                             <TreeView x:Name="tvNVPane"                                                                    
-                                      SelectedItemChanged="TreeView_SelectedItemChanged"
                                       PreviewMouseLeftButtonDown="tvNVPane_PreviewMouseLeftButtonDown"
+                                      KeyDown="tvNVPane_KeyDown" 
                                       Background="White" Margin="5,5,0,5"
                                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                       FontSize="28" >
@@ -138,7 +138,7 @@
                                     <Button x:Name="btnUp" Content="↑" IsEnabled="False" Style="{StaticResource btnNavi}" Click="btnUp_Click"/>
                                 </StackPanel>
 
-                                <TextBox x:Name="tbPath" Text="" VerticalContentAlignment="Center" IsReadOnly="True" />
+                                <TextBox x:Name="tbPath" Text="{Binding CurrentDir.CurrentItem.FullPath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" IsReadOnly="True"/>
                             </DockPanel>
                         </Border>
 

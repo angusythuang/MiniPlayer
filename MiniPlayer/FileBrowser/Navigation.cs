@@ -14,6 +14,7 @@ namespace MiniPlayer
         private class HistoryEntry // 或者 private class HistoryEntry
         {
             public required FileSystemItem Item { get; set; }
+            public FileSystemItem? SelectedItem { get; set; }
         }
         private List<HistoryEntry> _navigationHistory = new List<HistoryEntry>();
         private int _currentHistoryIndex = -1;
@@ -41,7 +42,7 @@ namespace MiniPlayer
             // Up button
             if (btnUp != null)
             {
-                string? currentPath = tbPath.Text;
+                string currentPath = CurrentDir.CurrentItem.FullPath;
                 bool canGoUp = false; // 直接判斷是否可以向上導航
 
                 if (!string.IsNullOrEmpty(currentPath))
@@ -70,9 +71,8 @@ namespace MiniPlayer
                 _currentHistoryIndex--;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
                 System.Diagnostics.Debug.WriteLine($"Navigating back to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
-                targetItem.LoadChildren();
+                CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
-                LoadItemsForListView(targetItem);
                 // Optionally, update the TreeView selection
                 // You would need to implement a method to select the item in TreeView
                 // based on the path, which might involve expanding nodes.
@@ -89,9 +89,11 @@ namespace MiniPlayer
                 _currentHistoryIndex++;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
                 System.Diagnostics.Debug.WriteLine($"Navigating next to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
-                targetItem.LoadChildren();
+                CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
-                LoadItemsForListView(targetItem);
+                // Optionally, update the TreeView selection
+                // You would need to implement a method to select the item in TreeView
+                // based on the path, which might involve expanding nodes.
             }
         }
 
@@ -100,29 +102,105 @@ namespace MiniPlayer
         /// </summary>
         private void btnUp_Click(object sender, RoutedEventArgs e)
         {
-            //string currentPath = tbPath.Text;
-            //if (!string.IsNullOrEmpty(currentPath))
-            //{
-            //    try
-            //    {
-            //        DirectoryInfo? parent = Directory.GetParent(currentPath);
-            //        if (parent != null)
-            //        {
-            //            string parentPath = parent.FullName;
-            //            LoadItemsForListView(parentPath); // tbPath.Text 會在 LoadItemsForListView 內部更新
-            //            // Optionally, update the TreeView selection
-            //        }
-            //        else
-            //        {
-            //            // Already at the root of a drive, disable Up button (handled by UpdateNavigationButtonStates)
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        MessageBox.Show($"無法導航到上一級目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            //    }
-            //}
-            //UpdateNavigationButtonStates();
+            if (CurrentDir.CurrentItem != null && CurrentDir.CurrentItem.Parent != null)
+            {
+                try
+                {
+                    var parentItem = CurrentDir.CurrentItem.Parent;
+                    CurrentDir.CurrentItem = parentItem; // 更新 CurrentDir，觸發 PropertyChanged
+                    parentItem.IsSelected = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"{DebugInfo.Current()} 無法導航到上一級目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            UpdateNavigationButtonStates();
+        }
+
+        /// <summary>
+        /// 獲取當前的歷史記錄項目。
+        /// </summary>
+        /// <returns>當前的 HistoryEntry，如果無有效項目則返回 null。</returns>
+        private HistoryEntry? GetCurrentHistoryEntry()
+        {
+            if (_currentHistoryIndex >= 0 && _currentHistoryIndex < _navigationHistory.Count)
+            {
+                return _navigationHistory[_currentHistoryIndex];
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 處理導航歷史的更新，當 CurrentDir.CurrentItem 改變時調用。
+        /// </summary>
+        /// <param name="currentItem">當前選擇的 FileSystemItem</param>
+        /// <returns>元組 (isValid, targetItem, historyIndex)：
+        /// - isValid: 表示當前路徑是否有效
+        /// - targetItem: 有效的 FileSystemItem（當前項目或回退項目）
+        /// </returns>
+        private (bool isValid, FileSystemItem? targetItem) HandleNavigationHistoryUpdate(FileSystemItem currentItem)
+        {
+            string path = currentItem.FullPath;
+
+            // 步驟 1：驗證路徑有效性
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            {
+                CleanInvalidHistoryEntries();
+
+                if (_currentHistoryIndex >= 0 && _navigationHistory.Count > 0)
+                {
+                    // 回退到歷史記錄中的有效項目
+                    return (false, _navigationHistory[_currentHistoryIndex].Item);
+                }
+                else
+                {
+                    // 回退到第一個可用磁碟機
+                    var fallbackItem = TreeViewRootItems.FirstOrDefault(item => item.IsDrive && Directory.Exists(item.FullPath));
+                    return (false, fallbackItem);
+                }
+            }
+
+            // 步驟 2：判斷是否要更新歷史記錄
+            bool isSameAsCurrentHistoryEntry = _currentHistoryIndex >= 0 &&
+                                              _currentHistoryIndex < _navigationHistory.Count &&
+                                              string.Equals(path, _navigationHistory[_currentHistoryIndex].Item.FullPath,
+                                                          StringComparison.OrdinalIgnoreCase);
+            
+            if (!isSameAsCurrentHistoryEntry)
+            {
+                // 準備新的歷史記錄
+                var newEntry = new HistoryEntry { Item = currentItem };
+
+                // 處理 SelectedItem 邏輯（父子目錄）
+                if (_currentHistoryIndex >= 0 && _currentHistoryIndex < _navigationHistory.Count)
+                {
+                    var previousEntry = _navigationHistory[_currentHistoryIndex];
+
+                    // 子目錄：當前項目的 Parent 等於前一個歷史項目的 Item
+                    if (currentItem.Parent == previousEntry.Item)
+                    {
+                        previousEntry.SelectedItem = currentItem;
+                        System.Diagnostics.Debug.WriteLine($"Set previous entry's SelectedItem to subfolder: {currentItem.FullPath}");
+                    }
+                    // 父目錄：前一個歷史項目的 Parent 等於當前項目
+                    else if (previousEntry.Item.Parent == currentItem)
+                    {
+                        newEntry.SelectedItem = previousEntry.Item;
+                        System.Diagnostics.Debug.WriteLine($"Set current entry's SelectedItem to subfolder: {previousEntry.Item.FullPath}");
+                    }
+                }
+
+                if (_currentHistoryIndex < _navigationHistory.Count - 1)
+                {
+                    _navigationHistory.RemoveRange(_currentHistoryIndex + 1, _navigationHistory.Count - _currentHistoryIndex - 1);
+                }
+                _navigationHistory.Add(newEntry);
+                _currentHistoryIndex = _navigationHistory.Count - 1;
+                System.Diagnostics.Debug.WriteLine($"Added history entry: {path}, Index: {_currentHistoryIndex}");
+            }
+
+            return (true, currentItem);
         }
 
         /// <summary>
