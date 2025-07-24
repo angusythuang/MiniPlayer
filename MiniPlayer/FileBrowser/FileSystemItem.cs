@@ -9,12 +9,62 @@ namespace MiniPlayer
     public class FileSystemItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        private string _fullPath;
-        private string _manualName = "";
-        private bool _isSelected;
+		public bool IsDirectory { get; set; }
+		public bool IsDrive { get; set; }
 
-        // 父目錄；當前項目是磁碟機時，父目錄為 null
-        private FileSystemItem? _parent;
+		private string _fullPath;
+		public string FullPath
+		{
+			get { return _fullPath; }
+			set
+			{
+				if (_fullPath != value)
+				{
+					_fullPath = value;
+					OnPropertyChanged(nameof(FullPath));
+
+					if (string.IsNullOrEmpty(_manualName))
+					{
+						OnPropertyChanged(nameof(Name));
+					}
+					OnPropertyChanged(nameof(Icon));
+				}
+			}
+		}
+
+		private string _manualName = "";
+
+        private bool _isSelected;
+		public bool IsSelected
+		{
+			get { return _isSelected; }
+			set
+			{
+				if (_isSelected != value)
+				{
+					_isSelected = value;
+					OnPropertyChanged(nameof(IsSelected));
+				}
+			}
+		}
+
+		private bool _isExpanded;
+		public bool IsExpanded
+		{
+			get => _isExpanded;
+			set
+			{
+				if (_isExpanded != value)
+				{
+					_isExpanded = value;
+					OnPropertyChanged(nameof(IsExpanded));					
+				}
+			}
+		}
+
+
+		// 父目錄；當前項目是磁碟機時，父目錄為 null
+		private FileSystemItem? _parent;
 
         // 用於存儲子目錄的集合(排除隱藏目錄、無權存取目錄與檔案；檔案在 lvFileList 裡面動態載入)
         private ObservableCollection<FileSystemItem> _children; 
@@ -55,38 +105,6 @@ namespace MiniPlayer
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error checking for subdirectories in {FullPath}: {ex.Message}");
-                }
-            }
-        }
-
-        public bool IsSelected
-        {
-            get { return _isSelected; }
-            set
-            {
-                if (_isSelected != value)
-                {
-                    _isSelected = value;
-                    OnPropertyChanged(nameof(IsSelected));
-                }
-            }
-        }
-
-        public string FullPath
-        {
-            get { return _fullPath; }
-            set
-            {
-                if (_fullPath != value)
-                {
-                    _fullPath = value;
-                    OnPropertyChanged(nameof(FullPath));
-
-                    if (string.IsNullOrEmpty(_manualName))
-                    {
-                        OnPropertyChanged(nameof(Name));
-                    }
-                    OnPropertyChanged(nameof(Icon));
                 }
             }
         }
@@ -148,9 +166,6 @@ namespace MiniPlayer
                 }
             }
         }
-
-        public bool IsDirectory { get; set; }
-        public bool IsDrive { get; set; }
 
         public ObservableCollection<FileSystemItem> Children
         {

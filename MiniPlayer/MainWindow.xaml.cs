@@ -62,8 +62,6 @@ namespace MiniPlayer
                         {
                             treeViewItem.BringIntoView();
                         }
-                        // 初始化按鈕狀態
-                        UpdateNavigationButtonStates();
                     }
                 }), DispatcherPriority.Loaded);
             }
@@ -86,12 +84,12 @@ namespace MiniPlayer
                 var currentItem = CurrentDir.CurrentItem;
                 if (currentItem != null && (currentItem.IsDirectory || currentItem.IsDrive))  // 確保是目錄或磁碟機
                 {
-                    // 確認路徑有效
+                    // HandleNavigationHistoryUpdate() 會檢查路徑是否有效，並更新歷史紀錄
                     var (isValid, targetItem) = HandleNavigationHistoryUpdate(currentItem);
                     if (!isValid && targetItem != null)
                     {
                         // 路徑無效
-                        // 已歷史中清除無效的路徑
+                        // 歷史紀錄中已清除無效的路徑
                         // 並退回到前一個有效的路徑
                         CurrentDir.CurrentItem = targetItem;
                         return; // 等待下一次 PropertyChanged
@@ -106,9 +104,6 @@ namespace MiniPlayer
                         return;
                     }
 
-                    // 更新導航按鈕狀態
-                    UpdateNavigationButtonStates();
-
                     // 同步 UI：更新 lvFileList、tvNVPane
                     LoadItemsForListView(currentItem);
                     SelectTreeViewItemByPath(currentItem);
@@ -119,54 +114,7 @@ namespace MiniPlayer
                     MessageBox.Show($"{DebugInfo.Current()} 收到非檔案或磁碟機的參數", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }       
-
-        // 使用 FullPath 拆分層層查找
-        private void SelectTreeViewItemByPath(FileSystemItem targetItem)
-        {
-            if (targetItem == null || string.IsNullOrEmpty(targetItem.FullPath)) return;
-
-            // 拆分 FullPath 為層次
-            string[] pathParts = targetItem.FullPath.TrimEnd(Path.DirectorySeparatorChar)
-                                            .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-            if (pathParts.Length == 0) return;
-
-            // 從頂層磁碟機開始
-            string drivePath = pathParts[0].EndsWith(":") ? pathParts[0] + @"\" : pathParts[0];
-            FileSystemItem? currentItem = TreeViewRootItems.FirstOrDefault(item =>
-                string.Equals(item.FullPath, drivePath, StringComparison.OrdinalIgnoreCase));
-
-            if (currentItem == null) return;
-
-            // 逐層查找
-            for (int i = 1; i < pathParts.Length; i++)
-            {
-                currentItem.LoadChildren(); // 確保子目錄已載入
-                string currentPathPart = pathParts[i];
-                currentItem = currentItem.Children.FirstOrDefault(child =>
-                    string.Equals(Path.GetFileName(child.FullPath), currentPathPart, StringComparison.OrdinalIgnoreCase));
-
-                if (currentItem == null) return; // 路徑無效，停止查找
-
-                // 展開父節點
-                TreeViewItem? parentTreeViewItem = tvNVPane.ItemContainerGenerator.ContainerFromItem(currentItem) as TreeViewItem;
-                if (parentTreeViewItem != null)
-                {
-                    parentTreeViewItem.IsExpanded = true;
-                }
-            }
-
-            // 選擇目標節點
-            if (currentItem != null)
-            {
-                TreeViewItem? treeViewItem = tvNVPane.ItemContainerGenerator.ContainerFromItem(currentItem) as TreeViewItem;
-                if (treeViewItem != null)
-                {
-                    treeViewItem.IsSelected = true;
-                    treeViewItem.BringIntoView();
-                }
-            }
-        }
+        }               
 
         private void btnExit_Click(object sender, RoutedEventArgs e)
         {

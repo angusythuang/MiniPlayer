@@ -96,7 +96,9 @@
                     </Grid.ColumnDefinitions>
                     <Grid x:Name="TreeView" Grid.Column="0">
                         <Border BorderThickness="0" Background="#F4F4F4">
-                            <TreeView x:Name="tvNVPane"                                                                    
+                            <TreeView x:Name="tvNVPane"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
                                       PreviewMouseLeftButtonDown="tvNVPane_PreviewMouseLeftButtonDown"
                                       KeyDown="tvNVPane_KeyDown" 
                                       Background="White" Margin="5,5,0,5"
@@ -118,6 +120,8 @@
 
                                 <TreeView.ItemContainerStyle>
                                     <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource FileTreeView}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
                                         <EventSetter Event="TreeViewItem.Expanded" Handler="TreeViewItem_Expanded"/>
                                     </Style>
                                 </TreeView.ItemContainerStyle>

@@ -111,6 +111,74 @@ namespace MiniPlayer
         }
 
         /// <summary>
+        /// 將目前的 FileSystemItem 設定為 tvNVPane 的選中項目，並展開到該路徑
+        /// </summary>
+        private void SelectTreeViewItemByPath(FileSystemItem targetItem)
+        {
+            if (targetItem == null || string.IsNullOrEmpty(targetItem.FullPath))
+            {
+                System.Diagnostics.Debug.WriteLine("Invalid target item or path.");
+                return;
+            }
+
+            // 步驟 1：分拆 FullPath
+            string[] pathSegments = targetItem.FullPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            if (pathSegments.Length == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("No path segments found.");
+                return;
+            }
+
+            // 步驟 2：查找磁碟機
+            FileSystemItem? currentNode = TreeViewRootItems.FirstOrDefault(item =>
+                string.Equals(item.FullPath, pathSegments[0] + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+            if (currentNode == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Drive not found for {pathSegments[0] + Path.DirectorySeparatorChar}");
+                return;
+            }
+
+            if (pathSegments.Length == 1) { return; } // 如果只有磁碟機，則不需要展開子目錄
+
+            currentNode.IsExpanded = true; // 依賴綁定，觸發 TreeViewItem_Expanded
+            System.Diagnostics.Debug.WriteLine($"Expanded drive: {currentNode.FullPath}");
+
+            // 步驟 3：遍歷子目錄
+            for (int i = 1; i < pathSegments.Length; i++)
+            {
+                string nextPath = Path.Combine(pathSegments.Take(i + 1).ToArray());
+                currentNode = currentNode.Children.FirstOrDefault(child =>
+                    string.Equals(child.FullPath, nextPath, StringComparison.OrdinalIgnoreCase));
+                if (currentNode == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Child not found for path: {nextPath}");
+                    return;
+                }
+
+                currentNode.IsExpanded = true; // 依賴綁定，觸發 TreeViewItem_Expanded
+                System.Diagnostics.Debug.WriteLine($"Expanded directory: {currentNode.FullPath}");
+            }
+
+            // 步驟 4：選擇最後一層並滾動
+            currentNode.IsSelected = true;
+            tvNVPane.UpdateLayout(); // 確保 UI 更新（虛擬化場景）
+
+            Dispatcher.InvokeAsync(() =>
+            {
+                var treeViewItem = tvNVPane.ItemContainerGenerator.ContainerFromItem(currentNode) as TreeViewItem;
+                if (treeViewItem != null)
+                {
+                    treeViewItem.BringIntoView();
+                    System.Diagnostics.Debug.WriteLine($"Selected and scrolled to: {currentNode.FullPath}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"TreeViewItem not found for {currentNode.FullPath}");
+                }
+            }, DispatcherPriority.Render);
+        }
+
+        /// <summary>
         /// 當 TreeView 中的項目被展開時觸發，用於懶加載子項目。
         /// </summary>
         private void TreeViewItem_Expanded(object sender, RoutedEventArgs e)
@@ -150,7 +218,7 @@ namespace MiniPlayer
         }
 
         /// <summary>
-        /// 處理 TreeView 的鼠標左鍵按下事件，用於偵測點擊已相同的項目。
+        /// 處理 TreeView 的鼠標左鍵按下事件
         /// </summary>
         private void tvNVPane_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {

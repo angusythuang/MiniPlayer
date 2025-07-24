@@ -51,7 +51,6 @@ namespace MiniPlayer
             // 檢查路徑有效性
             if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
             {
-                UpdateNavigationButtonStates();
                 return;
             }
 
@@ -84,7 +83,7 @@ namespace MiniPlayer
                 if (currentHistoryEntry?.SelectedItem != null)
                 {
                     var itemToSelect = CurrentDirectoryItems.FirstOrDefault(i =>
-                        string.Equals(i.FullPath, currentHistoryEntry.SelectedItem.FullPath, StringComparison.OrdinalIgnoreCase));
+                        string.Equals(i.Name, currentHistoryEntry.SelectedItem.Name, StringComparison.OrdinalIgnoreCase));
                     if (itemToSelect != null)
                     {
                         lvFileList.SelectedItem = itemToSelect;
@@ -114,10 +113,6 @@ namespace MiniPlayer
                     _currentHistoryIndex = Math.Max(-1, _currentHistoryIndex - 1);
                     System.Diagnostics.Debug.WriteLine($"Removed error history entry: {path}");
                 }
-            }
-            finally
-            {
-                UpdateNavigationButtonStates();
             }
         }
 
