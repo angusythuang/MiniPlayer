@@ -77,7 +77,7 @@ namespace MiniPlayer
                 // You would need to implement a method to select the item in TreeView
                 // based on the path, which might involve expanding nodes.
             }
-            lvFileList.Focus();
+            //lvFileList.Focus();
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace MiniPlayer
                 // You would need to implement a method to select the item in TreeView
                 // based on the path, which might involve expanding nodes.
             }
-            lvFileList.Focus();
+            //lvFileList.Focus();
         }
 
         /// <summary>
@@ -118,13 +118,13 @@ namespace MiniPlayer
                 }
             }
 
-            lvFileList.Focus();
+            //lvFileList.Focus();
         }
 
         /// <summary>
         /// 獲取當前的歷史記錄項目。
         /// </summary>
-        /// <returns>當前的 HistoryEntry，如果無有效項目則返回 null。</returns>
+        /// <returns>當前的 HistoryEntry，如果無有效項目則返回 null。通常一定會有第一個 C:\ 存在。 </returns>
         private HistoryEntry? GetCurrentHistoryEntry()
         {
             if (_currentHistoryIndex >= 0 && _currentHistoryIndex < _navigationHistory.Count)

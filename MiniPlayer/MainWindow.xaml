@@ -80,6 +80,7 @@
 
             <TabItem Header="File Browser">
                 <Grid x:Name="FileBrowserMain"  Background="#F4F4F4">
+                    <!--
                     <Grid.Style>
                         <Style TargetType="{x:Type Grid}">
                             <Style.Triggers>
@@ -89,7 +90,7 @@
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-
+                    -->
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="25*"/>
                         <ColumnDefinition Width="75*"/>
@@ -122,6 +123,7 @@
                                     <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource FileTreeView}">
                                         <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                                         <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                        <Setter Property="local:TreeViewItemHelper.AutoScrollOnSelect" Value="True"/>
                                         <EventSetter Event="TreeViewItem.Expanded" Handler="TreeViewItem_Expanded"/>
                                     </Style>
                                 </TreeView.ItemContainerStyle>
@@ -129,7 +131,7 @@
                         </Border>
                     </Grid>
 
-                    <Grid x:Name="FileList" Grid.Column="1" Margin="0,5,5,5">
+                    <Grid x:Name="FileList" Grid.Column="1" Margin="0,5,5,5" FocusManager.IsFocusScope="True">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
