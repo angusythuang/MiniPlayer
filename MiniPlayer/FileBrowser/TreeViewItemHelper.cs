@@ -1,9 +1,10 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
-using System.ComponentModel;
 
 namespace MiniPlayer
 {
@@ -47,55 +48,90 @@ namespace MiniPlayer
         }
 
         // 監聽 IsSelected 屬性變更的核心方法
+        //private static void OnIsSelectedChanged(object? sender, EventArgs e)
+        //{
+        //    if (sender is TreeViewItem tvi && tvi.IsSelected)
+        //    {              
+        //        tvi.Dispatcher.InvokeAsync(() =>
+        //        {
+        //            System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Enter Scrolled to selected item: {(tvi.DataContext as FileSystemItem)?.IsSelected}");
+        //            // 再次檢查 IsLoaded，確保 TreeViewItem 仍是 UI 樹的一部分
+        //            if (tvi.IsLoaded)
+        //            {
+        //                // 呼叫 BringIntoView() 滾動到可視範圍
+        //                tvi.BringIntoView();
+        //                System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Scrolled to selected item: {(tvi.DataContext as FileSystemItem)?.FullPath}");
+        //            }
+        //        }, DispatcherPriority.Render);
+        //    }
+        //}
         private static void OnIsSelectedChanged(object? sender, EventArgs e)
         {
-            if (sender is TreeViewItem tvi && tvi.IsSelected)
+            if (sender is TreeViewItem tvi && tvi.DataContext is FileSystemItem item)
             {
-                // 使用 Dispatcher.BeginInvoke 延遲執行，讓 UI 執行緒有機會處理其他更高優先級的任務
-                tvi.Dispatcher.BeginInvoke(new Action(() =>
+                if (!item.IsSelected) return; // 只處理選中事件
+
+                Debug.WriteLine($"[TreeViewItemHelper] IsSelected changed for: {item.FullPath}");
+                Debug.WriteLine($"[TreeViewItemHelper] Initial state - IsLoaded: {tvi.IsLoaded}, IsMeasureValid: {tvi.IsMeasureValid}, IsArrangeValid: {tvi.IsArrangeValid}");
+
+                // 使用 InvokeAsync 確保在 UI 執行緒上執行，且在 Render 優先級下給予佈局機會
+                tvi.Dispatcher.InvokeAsync(() =>
                 {
-                    // === 關鍵的優化 ===
-                    // 只有當 TreeViewItem 已被載入且有佈局時才訂閱 LayoutUpdated 事件
-                    // 這能確保我們只處理有效的 UI 元素
-                    if (tvi.IsLoaded && tvi.IsArrangeValid) // 檢查 IsArrangeValid 確保佈局已完成
+                    // 確保所有父節點都已展開。這是確保 TreeViewItem 容器被生成的前提。
+                    FileSystemItem? current = item;
+                    while (current != null && current.Parent != null)
                     {
-                        // 確保事件只訂閱一次
-                        tvi.LayoutUpdated -= Tvi_LayoutUpdated;
-                        tvi.LayoutUpdated += Tvi_LayoutUpdated;
-
-                        // 將 tvi 儲存在事件處理器中，以便後續使用 (這是 C# 9+ 的局部函數閉包特性)
-                        void Tvi_LayoutUpdated(object? s, EventArgs ea)
+                        if (!current.Parent.IsExpanded)
                         {
-                            // 立即取消訂閱，以避免重複觸發
-                            tvi.LayoutUpdated -= Tvi_LayoutUpdated;
-                            tvi.BringIntoView();
-                            System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] LayoutUpdated and scrolled to: {(tvi.DataContext as FileSystemItem)?.FullPath}");
+                            current.Parent.IsExpanded = true;
+                            Debug.WriteLine($"[TreeViewItemHelper] Forcing parent expand: {current.Parent.FullPath}");
+                            // 在沒有虛擬化的情況下，這會導致立即生成子項目。
+                            // 但我們仍然需要等待這些新生成的項目完成佈局。
                         }
+                        current = current.Parent;
                     }
-                    else if (tvi.IsLoaded)
-                    {
-                        // 如果尚未完成佈局，但已載入，直接滾動，這在某些情況下仍然有效
-                        tvi.BringIntoView();
-                        System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Direct scroll for loaded item: {(tvi.DataContext as FileSystemItem)?.FullPath}");
-                    }
-                    else
-                    {
-                        // 如果既未載入也未佈局，可能在更早的階段被觸發，記錄下來
-                        System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Item not loaded/arranged yet: {(tvi.DataContext as FileSystemItem)?.FullPath}");
-                    }
-                }), DispatcherPriority.Background);
 
+                    // 關鍵點：在項目完全佈局完成後再呼叫 BringIntoView()
+                    // 由於沒有虛擬化，這裡不需要複雜的 ItemContainerGenerator 檢查，
+                    // 但我們需要等待佈局更新。
+                    // 使用 Dispatcher.InvokeAsync 再次排隊，並檢查佈局狀態。
+                    tvi.Dispatcher.InvokeAsync(() =>
+                    {
+                        Debug.WriteLine($"[TreeViewItemHelper] After parent expand InvokeAsync - IsLoaded: {tvi.IsLoaded}, IsMeasureValid: {tvi.IsMeasureValid}, IsArrangeValid: {tvi.IsArrangeValid} for {item.FullPath}");
 
-                //tvi.Dispatcher.InvokeAsync(() =>
-                //{
-                //    // 再次檢查 IsLoaded，確保 TreeViewItem 仍是 UI 樹的一部分
-                //    if (tvi.IsLoaded)
-                //    {
-                //        // 呼叫 BringIntoView() 滾動到可視範圍
-                //        tvi.BringIntoView();                        
-                //        System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Scrolled to selected item: {(tvi.DataContext as FileSystemItem)?.FullPath}");
-                //    }
-                //}, DispatcherPriority.Render); // Background 優先級給予 UI 更多時間更新
+                        // 判斷是否已經準備好捲動
+                        if (tvi.IsLoaded && tvi.IsMeasureValid && tvi.IsArrangeValid)
+                        {
+                            tvi.BringIntoView();
+                            Debug.WriteLine($"[TreeViewItemHelper] Successfully scrolled to: {item.FullPath}");
+                        }
+                        else
+                        {
+                            // 如果還沒準備好，嘗試訂閱 LayoutUpdated 事件
+                            // 使用一個局部變數來儲存事件處理器，方便在觸發後移除
+                            EventHandler? layoutUpdatedHandler = null;
+                            layoutUpdatedHandler = (s, args) =>
+                            {
+                                // 確保只執行一次
+                                tvi.LayoutUpdated -= layoutUpdatedHandler;
+                                Debug.WriteLine($"[TreeViewItemHelper] LayoutUpdated triggered for: {item.FullPath}, IsLoaded: {tvi.IsLoaded}, IsMeasureValid: {tvi.IsMeasureValid}, IsArrangeValid: {tvi.IsArrangeValid}");
+
+                                if (tvi.IsLoaded && tvi.IsMeasureValid && tvi.IsArrangeValid)
+                                {
+                                    tvi.BringIntoView();
+                                    Debug.WriteLine($"[TreeViewItemHelper] Scrolled via LayoutUpdated to: {item.FullPath}");
+                                }
+                                else
+                                {
+                                    // 仍然無法捲動，可能存在更深層次的佈局問題或時機問題
+                                    Debug.WriteLine($"[TreeViewItemHelper] Still not ready after LayoutUpdated for: {item.FullPath}");
+                                }
+                            };
+                            tvi.LayoutUpdated += layoutUpdatedHandler;
+                            Debug.WriteLine($"[TreeViewItemHelper] Waiting for LayoutUpdated for: {item.FullPath}");
+                        }
+                    }, DispatcherPriority.Render); // 仍然使用 Render 優先級
+                }, DispatcherPriority.Render); // 第一次 InvokeAsync
             }
         }
     }

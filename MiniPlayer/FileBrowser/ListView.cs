@@ -91,6 +91,13 @@ namespace MiniPlayer
                         System.Diagnostics.Debug.WriteLine($"Selected ListView item: {itemToSelect.FullPath}");
                     }
                 }
+                else
+                {
+                    if (lvFileList.Items.Count > 0)
+                    {
+                        lvFileList.ScrollIntoView(lvFileList.Items[0]);
+                    }
+                }
             }
             catch (UnauthorizedAccessException ex)
             {

@@ -80,7 +80,7 @@
 
             <TabItem Header="File Browser">
                 <Grid x:Name="FileBrowserMain"  Background="#F4F4F4">
-                    <!--
+                    
                     <Grid.Style>
                         <Style TargetType="{x:Type Grid}">
                             <Style.Triggers>
@@ -90,7 +90,7 @@
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
-                    -->
+                    
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="25*"/>
                         <ColumnDefinition Width="75*"/>
@@ -98,8 +98,6 @@
                     <Grid x:Name="TreeView" Grid.Column="0">
                         <Border BorderThickness="0" Background="#F4F4F4">
                             <TreeView x:Name="tvNVPane"
-                                      VirtualizingStackPanel.IsVirtualizing="True"
-                                      VirtualizingStackPanel.VirtualizationMode="Recycling"
                                       PreviewMouseLeftButtonDown="tvNVPane_PreviewMouseLeftButtonDown"
                                       KeyDown="tvNVPane_KeyDown" 
                                       Background="White" Margin="5,5,0,5"
@@ -131,7 +129,7 @@
                         </Border>
                     </Grid>
 
-                    <Grid x:Name="FileList" Grid.Column="1" Margin="0,5,5,5" FocusManager.IsFocusScope="True">
+                    <Grid x:Name="FileList" Grid.Column="1" Margin="0,5,5,5">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>

@@ -132,8 +132,7 @@ namespace MiniPlayer
             // 設定當前項目為選取狀態。這將觸發附加屬性中的邏輯。
             targetItem.IsSelected = true;
 
-            // 無需再呼叫 Dispatcher 或 BringIntoView()。
-            // 這部分工作已交由 TreeViewItemHelper 完成。
+            
         }
 
         /// <summary>

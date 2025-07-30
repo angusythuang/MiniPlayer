@@ -104,7 +104,7 @@ namespace MiniPlayer
                         return;
                     }
 
-                    // 同步 UI：更新 lvFileList、tvNVPane
+                    // 同步 UI：更新 lvFileList、tvNVPane                    
                     LoadItemsForListView(currentItem);
                     SelectTreeViewItemByPath(currentItem);
                 }
