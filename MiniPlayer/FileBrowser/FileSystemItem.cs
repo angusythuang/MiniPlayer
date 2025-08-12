@@ -70,6 +70,13 @@ namespace MiniPlayer
         private ObservableCollection<FileSystemItem> _children;
         private readonly ICollectionView _childrenView;
         private BitmapSource? _icon;
+        private bool _isUseIconMember;
+
+        // 特殊副檔名集合，這些副檔名會抓取各自的 icon，且不存入 IconHelper 的 cache；使用 HashSet 加速查詢
+        private static readonly HashSet<string> SpecialExtensions = new HashSet<string>
+        {
+            ".scr", ".exe", ".ico", ".lnk"
+        };
 
         public ICollectionView ChildrenView => _childrenView;
 
@@ -80,32 +87,59 @@ namespace MiniPlayer
             IsDrive = isDrive;
             _parent = parent; // 設定父項目
             _children = new ObservableCollection<FileSystemItem>();
-            //_childrenView = CollectionViewSource.GetDefaultView(_children);
-            //if (_childrenView is ListCollectionView childrenCollectionView)
-            //{
-            //    childrenCollectionView.CustomSort = new CustomFileSystemItemComparer();
-            //}
+            _childrenView = CollectionViewSource.GetDefaultView(_children);
+            if (_childrenView is ListCollectionView childrenCollectionView)
+            {
+                childrenCollectionView.CustomSort = CustomFileSystemItemComparer.Instance;
+            }
+
+            _isUseIconMember = false;
 
             if (isDirectory || isDrive)
             {
                 try
                 {
+                    // 如果有任何一個非隱藏的子目錄，就加一個 DummyChild ，實現 lazy loading
                     if (Directory.EnumerateDirectories(FullPath)
                         .Any(dir => (new DirectoryInfo(dir).Attributes & FileAttributes.Hidden) == 0))
                     {
                         _children.Add(new FileSystemItem("DummyChild", isDirectory: false, isDrive: false, this) { Name = "載入中..." });
                     }
                 }
-                catch (UnauthorizedAccessException)
-                {
-                }
-                catch (DirectoryNotFoundException)
-                {
-                }
+                catch (UnauthorizedAccessException) { }
+                catch (DirectoryNotFoundException) { }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error checking for subdirectories in {FullPath}: {ex.Message}");
                 }
+
+                // 初始化 _icon
+                if (IsDirectory)
+                {
+                    // 目錄直接使用 IconHelper 的 DirectoryIcon
+                    _icon = IconHelper.DirectoryIcon;
+                    _isUseIconMember = true;
+                }
+                else if (IsDrive)
+                {
+                    // 如果是磁碟機，使用 IconHelper 的 GetItemIcon 方法
+                    // 且不存入 IconHelper 的 cache
+                    _icon = IconHelper.GetItemIcon(_fullPath, false);
+                    _isUseIconMember = true;
+                }
+            }
+            else if (SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
+            {
+                // 如果是特殊副檔名，使用 IconHelper 的 GetItemIcon 方法
+                // 且不存入 IconHelper 的 cache
+                _icon = IconHelper.GetItemIcon(_fullPath, false);
+                _isUseIconMember = true;
+            }
+            else
+            {
+                // 其他檔案類型，在呼叫 Icon 屬性時才會載入
+                _icon = null;
+                _isUseIconMember = false;
             }
         }
 
@@ -147,15 +181,16 @@ namespace MiniPlayer
         {
             get
             {
-                if (_icon == null)
+                if (_isUseIconMember)
                 {
-                    _icon = IconHelper.GetFileIcon(FullPath, smallIcon: false);
-                    if (_icon == null && IsDirectory)
-                    {
-                        _icon = IconHelper.GetFileIcon(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), smallIcon: false);
-                    }
+                    return _icon;
                 }
-                return _icon;
+                else
+                {
+                    // 如果不是使用 IconMember，則在需要時才載入圖示，
+                    // 並且存入 IconHelper 的 cache
+                    return IconHelper.GetItemIcon(_fullPath, true);
+                }
             }
             set
             {
@@ -190,16 +225,17 @@ namespace MiniPlayer
         {
             if (_children.Count == 1 && _children[0].FullPath == "DummyChild")
             {
+                // 如果只有一個 DummyChild，表示需要載入子目錄
                 _children.Clear();
                 try
                 {
+                    // 只載入子目錄
                     foreach (var dir in Directory.GetDirectories(FullPath))
                     {
                         DirectoryInfo dirInfo = new DirectoryInfo(dir);
                         if ((dirInfo.Attributes & FileAttributes.Hidden) == 0)
-                        {
-                            // 檢查是否有讀取權限
-                            if (HasReadAccess(dir))
+                        {                            
+                            if (HasReadAccess(dir)) // 檢查是否有讀取權限，有才會加入
                                 _children.Add(new FileSystemItem(dir, isDirectory: true, isDrive: false, this)); // 設定 Parent 為當前項目
                         }
                     }

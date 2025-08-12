@@ -62,6 +62,9 @@ namespace MiniPlayer
         [DllImport("comctl32.dll", SetLastError = true)]
         public static extern IntPtr ImageList_GetIcon(IntPtr himl, int i, uint flags);
 
+        [DllImport("comctl32.dll")]
+        private static extern int ImageList_GetImageCount(IntPtr himl);
+
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
 
@@ -277,6 +280,11 @@ namespace MiniPlayer
             if (hr != 0 || ppv == IntPtr.Zero)
                 return null;
 
+
+            int total = ImageList_GetImageCount(ppv);
+            if (iIcon < 0 || iIcon >= total)
+                return null;
+
             try
             {
                 IImageList imageList = (IImageList)Marshal.GetObjectForIUnknown(ppv);
@@ -293,6 +301,12 @@ namespace MiniPlayer
                         BitmapSizeOptions.FromEmptyOptions());
                     bs.Freeze();
                     return bs;
+                }
+                catch(Exception ex)
+                {
+                    // 處理可能的例外情況，例如無法創建 BitmapSource
+                    System.Diagnostics.Debug.WriteLine($"Error creating BitmapSource from icon: {ex.Message}");
+                    return null;
                 }
                 finally
                 {

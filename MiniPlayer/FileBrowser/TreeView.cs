@@ -29,7 +29,7 @@ namespace MiniPlayer
             // 設定磁碟機字母順序排序器
             if (TreeViewRootItemsView is ListCollectionView treeCollectionView)
             {
-                treeCollectionView.CustomSort = new DriveLetterComparer();
+                treeCollectionView.CustomSort = DriveLetterComparer.Instance;
             }
             else
             {

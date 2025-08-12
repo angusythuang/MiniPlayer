@@ -28,7 +28,7 @@ namespace MiniPlayer
             // 將 ICollectionView 轉換為 ListCollectionView 以設定 CustomSort
             if (CurrentDirectoryItemsView is ListCollectionView listCollectionView)
             {
-                listCollectionView.CustomSort = new CustomFileSystemItemComparer(); // 設定自訂排序器
+                listCollectionView.CustomSort = CustomFileSystemItemComparer.Instance; // 設定自訂排序器
             }
             else
             {

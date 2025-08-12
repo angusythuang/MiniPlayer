@@ -9,11 +9,17 @@ namespace MiniPlayer
     /// </summary>
     public class CustomFileSystemItemComparer : IComparer
     {
+        // Singleton instance，便於在應用程式中重複使用。
+        public static readonly CustomFileSystemItemComparer Instance = new CustomFileSystemItemComparer();
+
         /// <summary>
         /// 靜態類別，用於宣告從 Windows API 導入的函式。
         /// </summary>
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
         public static extern int StrCmpLogicalW(string psz1, string psz2);
+
+        // 私有建構子，防止外部 new
+        private CustomFileSystemItemComparer() { }
 
         public int Compare(object? x, object? y)
         {
@@ -36,6 +42,12 @@ namespace MiniPlayer
         /// </summary>
         public class DriveLetterComparer : IComparer
         {
+            // Singleton instance，便於在應用程式中重複使用。
+            public static readonly DriveLetterComparer Instance = new DriveLetterComparer();
+
+            // 私有建構子，防止外部 new
+            private DriveLetterComparer() { }
+
             public int Compare(object? x, object? y)
             {
                 if (x is FileSystemItem item1 && y is FileSystemItem item2)
