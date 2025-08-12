@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace MiniPlayer
 {
@@ -57,48 +58,57 @@ namespace MiniPlayer
 
             try
             {
-                // 添加目錄，使用現有的 FileSystemItem 的 Children 屬性
-                foreach (var child in item.Children)
+                // 使用 Dispatcher.BeginInvoke 將加載操作排入 UI 執行緒的背景優先級，
+                // 這樣 UI 就不會被長時間的檔案系統讀取操作卡住。
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    CurrentDirectoryItems.Add(child);
-                }
-
-                // 載入檔案
-                foreach (string file in Directory.GetFiles(path))
-                {
-                    FileInfo fileInfo = new FileInfo(file);
-                    if ((fileInfo.Attributes & FileAttributes.Hidden) == 0)
+                    this.Cursor = Cursors.Wait;
+                    // 添加目錄，使用現有的 FileSystemItem 的 Children 屬性
+                    foreach (var child in item.Children)
                     {
-                        CurrentDirectoryItems.Add(new FileSystemItem(file));
+                        CurrentDirectoryItems.Add(child);
                     }
-                }
 
-                // 有東西才更新畫面
-                if (CurrentDirectoryItems.Count > 0)
-                {
-                    CurrentDirectoryItemsView.Refresh();
-                }
+                    // 載入檔案
+                    foreach (string file in Directory.GetFiles(path))
+                    {
+                        FileInfo fileInfo = new FileInfo(file);
+                        if ((fileInfo.Attributes & FileAttributes.Hidden) == 0)
+                        {
+                            CurrentDirectoryItems.Add(new FileSystemItem(file));
+                        }
+                    }
 
-                // 設定 ListView 的選擇狀態
-                var currentHistoryEntry = GetCurrentHistoryEntry();
-                if (currentHistoryEntry?.SelectedItem != null)
-                {
-                    var itemToSelect = CurrentDirectoryItems.FirstOrDefault(i =>
-                        string.Equals(i.Name, currentHistoryEntry.SelectedItem.Name, StringComparison.OrdinalIgnoreCase));
-                    if (itemToSelect != null)
+                    // 有東西才更新畫面
+                    if (CurrentDirectoryItems.Count > 0)
                     {
-                        lvFileList.SelectedItem = itemToSelect;
-                        lvFileList.ScrollIntoView(itemToSelect);
-                        System.Diagnostics.Debug.WriteLine($"Selected ListView item: {itemToSelect.FullPath}");
+                        CurrentDirectoryItemsView.Refresh();
                     }
-                }
-                else
-                {
-                    if (lvFileList.Items.Count > 0)
+
+                    // 設定 ListView 的選擇狀態
+                    var currentHistoryEntry = GetCurrentHistoryEntry();
+                    if (currentHistoryEntry?.SelectedItem != null)
                     {
-                        lvFileList.ScrollIntoView(lvFileList.Items[0]);
+                        var itemToSelect = CurrentDirectoryItems.FirstOrDefault(i =>
+                            string.Equals(i.Name, currentHistoryEntry.SelectedItem.Name, StringComparison.OrdinalIgnoreCase));
+                        if (itemToSelect != null)
+                        {
+                            lvFileList.SelectedItem = itemToSelect;
+                            lvFileList.ScrollIntoView(itemToSelect);
+                            System.Diagnostics.Debug.WriteLine($"Selected ListView item: {itemToSelect.FullPath}");
+                        }
                     }
-                }
+                    else
+                    {
+                        if (lvFileList.Items.Count > 0)
+                        {
+                            lvFileList.ScrollIntoView(lvFileList.Items[0]);
+                        }
+                    }
+
+                    this.Cursor = Cursors.Arrow;
+                }), DispatcherPriority.Background); // Background 優先級確保 UI 保持響應
+                
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -160,15 +170,16 @@ namespace MiniPlayer
                                 {
                                     try
                                     {
-                                        CurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
-                                        return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
+                                        CurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);                                        
                                     }
                                     catch (Exception ex)
                                     {
-                                        MessageBox.Show($"{DebugInfo.Current()} 無法打開捷徑：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                                        MessageBox.Show($"無法打開捷徑：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                                     }
-                                }
 
+                                    // 直接返回，後面為檔案處理。
+                                    return; 
+                                }
                             }
                             else
                             {

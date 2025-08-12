@@ -150,8 +150,11 @@ namespace MiniPlayer
                     // 這樣 UI 就不會被長時間的檔案系統讀取操作卡住。
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
+                        this.Cursor = Cursors.Wait;
                         fileSystemItem.LoadChildren(); // 調用 FileSystemItem 中的加載子項目方法
+                        this.Cursor = Cursors.Arrow;
                     }), DispatcherPriority.Background); // Background 優先級確保 UI 保持響應
+
                 }
             }
         }
