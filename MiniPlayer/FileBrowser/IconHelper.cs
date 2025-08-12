@@ -68,30 +68,20 @@ namespace MiniPlayer
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
 
-        [ComImport]
-        [Guid("46EB5926-582E-4017-9FDF-E8998DAA0950")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        interface IImageList
-        {
-            [PreserveSig]
-            int GetIcon(int i, int flags, out IntPtr phicon);
-        }        
-
         #endregion
 
         #region 快取與靜態成員
 
         // 根據您提供的邏輯
-        // 1. 增加兩種快取
+        // 兩種快取
         // 快取 a: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
         private static readonly Dictionary<int, BitmapSource> _iconCacheByIIcon = new Dictionary<int, BitmapSource>();
 
         // 快取 b: 以標準化副檔名為鍵，儲存 BitmapSource 實例。
         private static readonly Dictionary<string, BitmapSource> _iconCacheByExtension = new Dictionary<string, BitmapSource>();
 
-        // 2. 增加靜態成員
-        private static BitmapSource? _directoryIcon;
-        private static int _unknownTypeIIcon;
+        private static BitmapSource? _directoryIcon;  // 目錄用的 Icon
+        private static int _unknownTypeIIcon;         // 未知類型檔案的 iIcon
 
         private static readonly Guid IID_IImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
 
@@ -269,54 +259,45 @@ namespace MiniPlayer
             SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
             return shfi.iIcon;
         }
-
-        // 用 iIcon 從系統圖示列表中獲取 BitmapSource。
-        public static BitmapSource? GetIconFromSystemImageList(int iIcon)
+        
+        private static BitmapSource? GetIconFromSystemImageList(int iIcon)
         {
-            IntPtr ppv;
-            // 用區域變數存 GUID
-            Guid iid = IID_IImageList;
-            int hr = SHGetImageList(SHIL_LARGE, ref iid, out ppv);
-            if (hr != 0 || ppv == IntPtr.Zero)
-                return null;
-
-
-            int total = ImageList_GetImageCount(ppv);
-            if (iIcon < 0 || iIcon >= total)
-                return null;
-
+            IntPtr hImageList = IntPtr.Zero;
             try
             {
-                IImageList imageList = (IImageList)Marshal.GetObjectForIUnknown(ppv);
-
-                int ret = imageList.GetIcon(iIcon, (int)ILD_TRANSPARENT, out IntPtr hIcon);
-                if (ret != 0 || hIcon == IntPtr.Zero)
-                    return null;
-
-                try
+                Guid riid = IID_IImageList;
+                int result = SHGetImageList(SHIL_LARGE, ref riid, out IntPtr ppv);
+                if (result == 0 && ppv != IntPtr.Zero)
                 {
-                    BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
-                        hIcon,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromEmptyOptions());
-                    bs.Freeze();
-                    return bs;
-                }
-                catch(Exception ex)
-                {
-                    // 處理可能的例外情況，例如無法創建 BitmapSource
-                    System.Diagnostics.Debug.WriteLine($"Error creating BitmapSource from icon: {ex.Message}");
-                    return null;
-                }
-                finally
-                {
-                    DestroyIcon(hIcon);
+                    hImageList = ppv;
+                    IntPtr hIcon = ImageList_GetIcon(hImageList, iIcon, 0);
+                    if (hIcon != IntPtr.Zero)
+                    {
+                        try
+                        {
+                            BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
+                                hIcon,
+                                Int32Rect.Empty,
+                                BitmapSizeOptions.FromEmptyOptions()
+                            );
+                            bs.Freeze();
+                            return bs;
+                        }
+                        finally
+                        {
+                            DestroyIcon(hIcon);
+                        }
+                    }
                 }
             }
             finally
             {
-                Marshal.Release(ppv);
+                if (hImageList != IntPtr.Zero)
+                {
+                    Marshal.Release(hImageList);
+                }
             }
+            return null;
         }
 
         #endregion
