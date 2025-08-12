@@ -53,7 +53,7 @@ namespace MiniPlayer
                     // 只有當磁碟機準備好時才顯示 (例如，排除沒有插入光碟的光碟機)
                     if (drive.IsReady)
                     {
-                        var driveItem = new FileSystemItem(drive.RootDirectory.FullName, true, true);
+                        var driveItem = new FileSystemItem(drive.RootDirectory.FullName, isDrive: true);
                         TreeViewRootItems.Add(driveItem);
                     }
                 }
@@ -80,7 +80,7 @@ namespace MiniPlayer
                 // 檢查磁碟機是否已存在且已就緒
                 if (drive.IsReady && !TreeViewRootItems.Any(item => item.FullPath.Equals(drive.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var driveItem = new FileSystemItem(drive.RootDirectory.FullName, true, true);
+                    var driveItem = new FileSystemItem(drive.RootDirectory.FullName, isDrive: true);
                     TreeViewRootItems.Add(driveItem);
                 }
             }
@@ -121,7 +121,7 @@ namespace MiniPlayer
                 return;
             }
 
-            // 遞迴展開所有父節點
+            // 展開所有父節點
             var parent = targetItem.Parent;
             while (parent != null)
             {
@@ -132,7 +132,7 @@ namespace MiniPlayer
             // 設定當前項目為選取狀態。這將觸發附加屬性中的邏輯。
             targetItem.IsSelected = true;
 
-            
+
         }
 
         /// <summary>

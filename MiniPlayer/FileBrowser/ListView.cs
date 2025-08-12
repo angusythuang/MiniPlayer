@@ -33,7 +33,7 @@ namespace MiniPlayer
             else
             {
                 System.Diagnostics.Debug.WriteLine("CurrentDirectoryItemsView is not a ListCollectionView. CustomSort cannot be applied.");
-            }            
+            }
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace MiniPlayer
                     FileInfo fileInfo = new FileInfo(file);
                     if ((fileInfo.Attributes & FileAttributes.Hidden) == 0)
                     {
-                        CurrentDirectoryItems.Add(new FileSystemItem(file, false));
+                        CurrentDirectoryItems.Add(new FileSystemItem(file));
                     }
                 }
 

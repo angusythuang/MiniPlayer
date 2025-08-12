@@ -1,228 +1,310 @@
-﻿using System.Diagnostics;             // For System.Diagnostics.Debug.WriteLine
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows.Interop;         // For Imaging.CreateBitmapSourceFromHIcon
-using System.Windows.Media.Imaging;   // For BitmapSource
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 
 namespace MiniPlayer
 {
+    /// <summary>
+    /// 協助從 Windows Shell 取得檔案與資料夾圖示的靜態工具類別。
+    /// 包含高效的快取機制，可減少對系統資源的重複請求。
+    /// </summary>
     public static class IconHelper
     {
-        // 儲存 SHGetFileInfo 函數返回的資訊的結構
+        #region Windows API 結構與常數
+        // -----------------------------------------------------------
+        // Windows API 結構與常數
+        // -----------------------------------------------------------
+
+        // SHFILEINFO 結構，用於接收 SHGetFileInfo 函式的回傳資訊。
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct SHFILEINFO
         {
-            public IntPtr hIcon;        // 處理圖示
-            public int iIcon;           // 圖示索引
-            public uint dwAttributes;   // 檔案屬性
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-            public string szDisplayName; // 顯示名稱
+            public string szDisplayName;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
-            public string szTypeName;    // 類型名稱
+            public string szTypeName;
         }
 
-        // SHGetFileInfo 函數的旗標
-        public const uint SHGFI_ICON = 0x100;              // 獲取圖示
-        public const uint SHGFI_SMALLICON = 0x1;           // 獲取小圖示 (16x16)
-        public const uint SHGFI_LARGEICON = 0x0;           // 獲取大圖示 (32x32)
-        public const uint SHGFI_USEFILEATTRIBUTES = 0x10;  // 即使檔案不存在，也使用檔案屬性來獲取圖示
-        public const uint SHGFI_OPENICON = 0x00000002;     // 獲取打開狀態的圖示 (用於資料夾)        
-        public const uint SHGFI_SYSICONINDEX = 0x4000;     // 獲取系統圖示索引
+        // SHGetFileInfo 函式所需的旗標。
+        public const uint SHGFI_ICON = 0x100;
+        public const uint SHGFI_SYSICONINDEX = 0x4000;
+        public const uint SHGFI_LARGEICON = 0x0;
+        //public const uint SHGFI_SMALLICON = 0x1; 
+        public const uint SHGFI_OPENICON = 0x2; // 開啟狀態的資料夾圖示
+        public const uint SHGFI_USEFILEATTRIBUTES = 0x10; // 使用傳入的 dwFileAttributes 而非檢查檔案路徑
+        public const uint FILE_ATTRIBUTE_NORMAL = 0x80;
+        public const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
 
-        // 引入 shell32.dll 中的 SHGetFileInfo 函數
+        // ImageList 相關常數
+        public const int SHIL_LARGE = 0x0; // 32x32 圖示
+        public const uint ILD_TRANSPARENT = 0x00000001; // 透明圖示
+
+        #endregion
+
+        #region COM 介面與 P/Invoke
+
+        // 導入 Windows API 函式
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbSizeStruct, uint uFlags);
+        public static extern IntPtr SHGetFileInfo(string pszPath, uint dwFileAttributes, ref SHFILEINFO psfi, uint cbSizeFileInfo, uint uFlags);
 
-        // 引入 user32.dll 中的 DestroyIcon 函數 (用於釋放圖示資源)
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DestroyIcon(IntPtr hIcon);
 
-        // 引入 comctl32.dll 中的 ImageList_GetIcon 函數，用於從系統圖示表提取圖示
         [DllImport("comctl32.dll", SetLastError = true)]
         public static extern IntPtr ImageList_GetIcon(IntPtr himl, int i, uint flags);
 
-        // 引入 shell32.dll 中的 SHGetImageList 函數，用於獲取系統圖示表
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
 
-        // 定義系統圖示表類型
-        public const int SHIL_JUMBO = 0x4; // 大圖示 (256x256)
-        public const int SHIL_EXTRALARGE = 0x2; // 超大圖示 (48x48)
-        public const int SHIL_LARGE = 0x0; // 大圖示 (32x32)
-        public const int SHIL_SMALL = 0x1; // 小圖示 (16x16)
+        [ComImport]
+        [Guid("46EB5926-582E-4017-9FDF-E8998DAA0950")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        interface IImageList
+        {
+            [PreserveSig]
+            int GetIcon(int i, int flags, out IntPtr phicon);
+        }        
 
-        // static readonly，因為 IID_IImageList 不應改變
+        #endregion
+
+        #region 快取與靜態成員
+
+        // 根據您提供的邏輯
+        // 1. 增加兩種快取
+        // 快取 a: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
+        private static readonly Dictionary<int, BitmapSource> _iconCacheByIIcon = new Dictionary<int, BitmapSource>();
+
+        // 快取 b: 以標準化副檔名為鍵，儲存 BitmapSource 實例。
+        private static readonly Dictionary<string, BitmapSource> _iconCacheByExtension = new Dictionary<string, BitmapSource>();
+
+        // 2. 增加靜態成員
+        private static BitmapSource? _directoryIcon;
+        private static int _unknownTypeIIcon;
+
         private static readonly Guid IID_IImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
 
-        // 從系統圖示表提取圖示
-        private static BitmapSource? GetIconFromSystemImageList(int iIcon, bool smallIcon, string filePath)
+        #endregion
+
+        #region 靜態建構式與屬性
+
+        // 3. 建構式預先載入常用圖示
+        static IconHelper()
         {
-            System.Diagnostics.Debug.WriteLine($"Attempting to retrieve icon from system image list for iIcon {iIcon}.");
-            IntPtr hImageList = IntPtr.Zero;
-            try
+
+            // 預抓 Directory Icon (資料夾圖示)
+            // 由於檔案系統虛擬化，傳入 "dummy_folder" 即可獲取資料夾圖示。
+            // 這裡使用了 GetFileIconInternal 方法來處理
+            (_directoryIcon, _) = GetIconInternal("dummy_folder", true);
+
+            // 預抓 Unknown Type Icon (未知檔案類型圖示)
+            // 這裡傳入一個沒有副檔名的路徑來模擬未知類型檔案。            
+            BitmapSource? unknownIcon;
+            (unknownIcon, _unknownTypeIIcon) = GetIconInternal("dummy_file", false);
+            if (unknownIcon != null)
             {
-                int imageListType = smallIcon ? SHIL_SMALL : SHIL_LARGE;
-                IntPtr ppv;
-                // 使用臨時 Guid 變數，避免傳遞 readonly 欄位作為 ref
-                Guid riid = IID_IImageList;
-                int result = SHGetImageList(imageListType, ref riid, out ppv);
-                if (result == 0 && ppv != IntPtr.Zero)
-                {
-                    hImageList = ppv;
-                    IntPtr hIcon = ImageList_GetIcon(hImageList, iIcon, 0);
-                    if (hIcon != IntPtr.Zero)
-                    {
-                        try
-                        {
-                            BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
-                                hIcon,
-                                System.Windows.Int32Rect.Empty,
-                                BitmapSizeOptions.FromEmptyOptions()
-                            );
-                            bs.Freeze();
-                            return bs;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error converting HICON to BitmapSource for {filePath}: {ex.Message}");
-                            return null;
-                        }
-                        finally
-                        {
-                            DestroyIcon(hIcon);
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"ImageList_GetIcon failed for iIcon {iIcon}, error code: {Marshal.GetLastWin32Error()}");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"SHGetImageList failed for {filePath}, HRESULT: {result}");
-                }
+                _iconCacheByIIcon[_unknownTypeIIcon] = unknownIcon;
             }
-            catch (Exception ex)
+        }
+
+        // 外部可直接使用的 DirectoryIcon 屬性
+        public static BitmapSource DirectoryIcon => _directoryIcon;
+
+        #endregion
+
+        #region 公有方法 (Public Methods)
+
+        /// <summary>
+        /// 獲取圖示並由呼叫方決定是否加入快取b。
+        /// </summary>
+        /// <param name="filePath">檔案路徑。</param>
+        /// <param name="useCache">是否加入快取b。</param>
+        /// <returns>檔案圖示的 BitmapSource，如果抓不到，則回傳 unknown Type Icon 。</returns>
+        public static BitmapSource GetItemIcon(string filePath, bool useCache)
+        {
+            BitmapSource? icon;
+
+            if (useCache)
             {
-                System.Diagnostics.Debug.WriteLine($"Error retrieving icon from system image list for {filePath}: {ex.Message}");
-            }
-            finally
-            {
-                // ADDED: 釋放圖示表資源
-                if (hImageList != IntPtr.Zero)
+                // 抓取 icon 時，根據副檔名先確認快取b
+                string extension = Path.GetExtension(filePath).ToLowerInvariant();
+
+                // 無副檔名
+                if (string.IsNullOrEmpty(extension))
                 {
-                    Marshal.Release(hImageList);
+                    // 直接從快取a 回傳靜態成員的 Unknown type icon
+                    return _iconCacheByIIcon[_unknownTypeIIcon];
                 }
+
+                // 檢查快取b
+                if (_iconCacheByExtension.TryGetValue(extension, out BitmapSource? cachedIcon))
+                {
+                    // hit
+                    return cachedIcon;
+                }
+
+                // Missing，呼叫 GetAndCacheIcon 處理
+                icon = GetAndCacheIcon(filePath, extension);
             }
-            return null;
+            else
+            {
+                // 不使用快取，直接呼叫 GetIconInternal
+                (icon, _) = GetIconInternal(filePath, false);
+                
+            }
+
+            return icon == null ? _iconCacheByIIcon[_unknownTypeIIcon] : icon;
         }
 
         /// <summary>
-        /// 根據檔案或資料夾路徑獲取其系統圖示。
+        /// 清除全部副檔名快取。
         /// </summary>
-        /// <param name="filePath">檔案或資料夾的完整路徑。</param>
-        /// <param name="smallIcon">如果為 true，返回 16x16 的小圖示；否則返回 32x32 的大圖示。</param>
-        /// <returns>轉換為 BitmapSource 的圖示，如果獲取失敗則為 null。</returns>
-        public static BitmapSource? GetFileIcon(string filePath, bool smallIcon = true)
+        public static void ClearExtensionCache()
         {
-            // 驗證輸入路徑是否有效
-            if (string.IsNullOrWhiteSpace(filePath))
+            _iconCacheByExtension.Clear();
+        }
+
+        /// <summary>
+        /// 清除特定副檔名快取。
+        /// </summary>
+        public static void ClearExtensionCache(string ext)
+        {
+            _iconCacheByExtension.Remove(ext);
+        }
+
+        #endregion
+
+        #region 內部實作 (Private Implementation)
+
+        /// <summary>
+        /// 獲取圖示並進行快取處理。
+        /// </summary>
+        private static BitmapSource? GetAndCacheIcon(string filePath, string extension)
+        {
+            //取得 iIcon
+            int iIcon = GetIIconFromPath(filePath);
+
+            BitmapSource? bs;
+
+            // 檢查快取a 
+            if (_iconCacheByIIcon.TryGetValue(iIcon, out BitmapSource? existingIcon))
             {
-                System.Diagnostics.Debug.WriteLine("GetFileIcon: filePath is null or empty.");
-                return null;
+                bs = existingIcon;
+            }
+            else
+            {
+                // 快取a沒命中，根據 iIcon 抓取 bs
+                bs = GetIconFromSystemImageList(iIcon);
             }
 
+            if (bs != null)
+            {
+                // 加入快取a與快取b
+                _iconCacheByIIcon[iIcon] = bs;
+                _iconCacheByExtension[extension] = bs;
+            }
+            return bs;
+
+        }
+
+        /// <summary>
+        /// 獲取圖示。
+        /// </summary>
+        private static (BitmapSource?, int) GetIconInternal(string filePath, bool isDirectory)
+        {
             SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_ICON | SHGFI_SYSICONINDEX; // 總是獲取圖示
-            if (smallIcon)
-                flags |= SHGFI_SMALLICON;
-            else
-                flags |= SHGFI_LARGEICON;
+            uint flags = SHGFI_ICON | SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
+            uint fileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-            uint fileAttributes = 0;
-
-            // 判斷路徑類型，並設定相應的旗標和屬性
-            if (Directory.Exists(filePath))
+            if (isDirectory)
             {
-                fileAttributes = (uint)FileAttributes.Directory; // 資料夾屬性
-                flags |= SHGFI_OPENICON; // 資料夾獲取打開狀態的圖示
-            }
-            else if (File.Exists(filePath))
-            {
-                fileAttributes = (uint)FileAttributes.Normal; // 普通檔案屬性
-            }
-            else
-            {
-                // 對於不存在的路徑，我們需要使用 USEFILEATTRIBUTES 旗標
-                flags |= SHGFI_USEFILEATTRIBUTES;
-                // 並且將 fileAttributes 設定為 Normal，讓 Shell 自己判斷其圖示。
-                // 例如，對於 ".txt" 的擴展名，即使檔案不存在，也能獲取到文本文檔圖示。
-                // 對於磁碟機根路徑 "C:\", Windows Shell 會正確識別並返回磁碟機圖示。
-                fileAttributes = (uint)FileAttributes.Normal;
+                fileAttributes = FILE_ATTRIBUTE_DIRECTORY;
+                // 目錄開啟狀態
+                flags |= SHGFI_OPENICON;
             }
 
-            // 呼叫 SHGetFileInfo 獲取圖示 Handle
-            IntPtr hIcon = IntPtr.Zero;
-            try
-            {
-                hIcon = SHGetFileInfo(
-                    filePath,
-                    fileAttributes,
-                    ref shfi,
-                    (uint)Marshal.SizeOf(shfi),
-                    flags
-                );
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error calling SHGetFileInfo for {filePath}: {ex.Message}");
-                return null;
-            }
+            IntPtr result = SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
 
-
-            if (hIcon != IntPtr.Zero) // 如果成功獲取到圖示 Handle
+            if (shfi.hIcon != IntPtr.Zero)
             {
                 try
                 {
                     BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
                         shfi.hIcon,
-                        System.Windows.Int32Rect.Empty,
+                        Int32Rect.Empty,
                         BitmapSizeOptions.FromEmptyOptions()
                     );
-                    bs.Freeze();
-                    return bs;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error converting HICON to BitmapSource for {filePath}: {ex.Message}");
-
-                    if (shfi.hIcon == IntPtr.Zero)
-                    {
-                        // 當 hIcon 為 0 時，檢查 iIcon 是否有值（例如 iIcon == 3）
-                        System.Diagnostics.Debug.WriteLine($"SHGetFileInfo failed for {filePath}, hIcon={shfi.hIcon}, iIcon={shfi.iIcon}.");
-                        if (shfi.iIcon != 0)
-                        {
-                            // 從系統圖示表提取圖示
-                            return GetIconFromSystemImageList(shfi.iIcon, smallIcon, filePath);
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"iIcon is 0 for {filePath}, no icon available.");
-                        }
-                        return null;
-                    }
+                    bs.Freeze(); // 凍結後，指標的內容永遠指向當前的物件，不可修改；可跨執行緒安全使用。
+                    return (bs, shfi.iIcon);
                 }
                 finally
                 {
                     DestroyIcon(shfi.hIcon);
                 }
             }
-            else
-            {
-                // SHGetFileInfo 失敗通常是因為路徑無效、權限問題或找不到圖示
-                Debug.WriteLine($"Failed to get icon for {filePath}. SHGetFileInfo returned IntPtr.Zero.");
-            }
-            return null; // 獲取失敗
+            return (null, 0);
         }
+
+        /// <summary>
+        /// 獲取路徑對應的系統圖示索引 (iIcon)。
+        /// </summary>
+        private static int GetIIconFromPath(string filePath)
+        {
+            SHFILEINFO shfi = new SHFILEINFO();
+            uint flags = SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
+            uint fileAttributes = FILE_ATTRIBUTE_NORMAL;
+            // 雖然這個方法不返回圖示，但為了獲取 iIcon，仍需呼叫 SHGetFileInfo。
+            // 這裡不需要處理 hIcon，因為它會被忽略。
+            SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
+            return shfi.iIcon;
+        }
+
+        // 用 iIcon 從系統圖示列表中獲取 BitmapSource。
+        public static BitmapSource? GetIconFromSystemImageList(int iIcon)
+        {
+            IntPtr ppv;
+            // 用區域變數存 GUID
+            Guid iid = IID_IImageList;
+            int hr = SHGetImageList(SHIL_LARGE, ref iid, out ppv);
+            if (hr != 0 || ppv == IntPtr.Zero)
+                return null;
+
+            try
+            {
+                IImageList imageList = (IImageList)Marshal.GetObjectForIUnknown(ppv);
+
+                int ret = imageList.GetIcon(iIcon, (int)ILD_TRANSPARENT, out IntPtr hIcon);
+                if (ret != 0 || hIcon == IntPtr.Zero)
+                    return null;
+
+                try
+                {
+                    BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
+                        hIcon,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+                    bs.Freeze();
+                    return bs;
+                }
+                finally
+                {
+                    DestroyIcon(hIcon);
+                }
+            }
+            finally
+            {
+                Marshal.Release(ppv);
+            }
+        }
+
+        #endregion
     }
 }

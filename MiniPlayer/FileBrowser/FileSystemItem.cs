@@ -9,82 +9,82 @@ namespace MiniPlayer
     public class FileSystemItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-		public bool IsDirectory { get; set; }
-		public bool IsDrive { get; set; }
+        public bool IsDirectory { get; set; }
+        public bool IsDrive { get; set; }
 
-		private string _fullPath;
-		public string FullPath
-		{
-			get { return _fullPath; }
-			set
-			{
-				if (_fullPath != value)
-				{
-					_fullPath = value;
-					OnPropertyChanged(nameof(FullPath));
+        private string _fullPath;
+        public string FullPath
+        {
+            get { return _fullPath; }
+            set
+            {
+                if (_fullPath != value)
+                {
+                    _fullPath = value;
+                    OnPropertyChanged(nameof(FullPath));
 
-					if (string.IsNullOrEmpty(_manualName))
-					{
-						OnPropertyChanged(nameof(Name));
-					}
-					OnPropertyChanged(nameof(Icon));
-				}
-			}
-		}
+                    if (string.IsNullOrEmpty(_manualName))
+                    {
+                        OnPropertyChanged(nameof(Name));
+                    }
+                    OnPropertyChanged(nameof(Icon));
+                }
+            }
+        }
 
-		private string _manualName = "";
+        private string _manualName = "";
 
         private bool _isSelected;
-		public bool IsSelected
-		{
-			get { return _isSelected; }
-			set
-			{
-				if (_isSelected != value)
-				{
-					_isSelected = value;
-					OnPropertyChanged(nameof(IsSelected));
-				}
-			}
-		}
+        public bool IsSelected
+        {
+            get { return _isSelected; }
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged(nameof(IsSelected));
+                }
+            }
+        }
 
-		private bool _isExpanded;
-		public bool IsExpanded
-		{
-			get => _isExpanded;
-			set
-			{
-				if (_isExpanded != value)
-				{
-					_isExpanded = value;
-					OnPropertyChanged(nameof(IsExpanded));					
-				}
-			}
-		}
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set
+            {
+                if (_isExpanded != value)
+                {
+                    _isExpanded = value;
+                    OnPropertyChanged(nameof(IsExpanded));
+                }
+            }
+        }
 
 
-		// 父目錄；當前項目是磁碟機時，父目錄為 null
-		private FileSystemItem? _parent;
+        // 父目錄；當前項目是磁碟機時，父目錄為 null
+        private FileSystemItem? _parent;
 
         // 用於存儲子目錄的集合(排除隱藏目錄、無權存取目錄與檔案；檔案在 lvFileList 裡面動態載入)
-        private ObservableCollection<FileSystemItem> _children; 
+        private ObservableCollection<FileSystemItem> _children;
         private readonly ICollectionView _childrenView;
         private BitmapSource? _icon;
 
         public ICollectionView ChildrenView => _childrenView;
 
-        public FileSystemItem(string path, bool isDirectory, bool isDrive = false, FileSystemItem? parent = null)
+        public FileSystemItem(string path, bool isDirectory = false, bool isDrive = false, FileSystemItem? parent = null)
         {
             _fullPath = path;
             IsDirectory = isDirectory;
             IsDrive = isDrive;
             _parent = parent; // 設定父項目
             _children = new ObservableCollection<FileSystemItem>();
-            _childrenView = CollectionViewSource.GetDefaultView(_children);
-            if (_childrenView is ListCollectionView childrenCollectionView)
-            {
-                childrenCollectionView.CustomSort = new CustomFileSystemItemComparer();
-            }
+            //_childrenView = CollectionViewSource.GetDefaultView(_children);
+            //if (_childrenView is ListCollectionView childrenCollectionView)
+            //{
+            //    childrenCollectionView.CustomSort = new CustomFileSystemItemComparer();
+            //}
 
             if (isDirectory || isDrive)
             {
@@ -93,7 +93,7 @@ namespace MiniPlayer
                     if (Directory.EnumerateDirectories(FullPath)
                         .Any(dir => (new DirectoryInfo(dir).Attributes & FileAttributes.Hidden) == 0))
                     {
-                        _children.Add(new FileSystemItem("DummyChild", false, false, this) { Name = "Loading..." });
+                        _children.Add(new FileSystemItem("DummyChild", isDirectory: false, isDrive: false, this) { Name = "載入中..." });
                     }
                 }
                 catch (UnauthorizedAccessException)
@@ -200,7 +200,7 @@ namespace MiniPlayer
                         {
                             // 檢查是否有讀取權限
                             if (HasReadAccess(dir))
-                                _children.Add(new FileSystemItem(dir, true, false, this)); // 設定 Parent 為當前項目
+                                _children.Add(new FileSystemItem(dir, isDirectory: true, isDrive: false, this)); // 設定 Parent 為當前項目
                         }
                     }
                 }
