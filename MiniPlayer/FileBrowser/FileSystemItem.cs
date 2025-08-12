@@ -69,6 +69,9 @@ namespace MiniPlayer
         // 用於存儲子目錄的集合(排除隱藏目錄、無權存取目錄與檔案；檔案在 lvFileList 裡面動態載入)
         private ObservableCollection<FileSystemItem> _children;
         private readonly ICollectionView _childrenView;
+
+        // 用於存儲圖示的 BitmapSource；如果是目錄則直接使用 IconHelper 的 DirectoryIcon
+        // 磁碟機則使用 IconHelper 的 GetItemIcon 方法，且不存入 IconHelper 的 cache
         private BitmapSource? _icon;
         private bool _isUseIconMember;
 
@@ -113,7 +116,6 @@ namespace MiniPlayer
                     System.Diagnostics.Debug.WriteLine($"Error checking for subdirectories in {FullPath}: {ex.Message}");
                 }
 
-                // 初始化 _icon
                 if (IsDirectory)
                 {
                     // 目錄直接使用 IconHelper 的 DirectoryIcon
@@ -266,6 +268,60 @@ namespace MiniPlayer
             {
                 return false;
             }
+        }
+
+        public static FileSystemItem? FindItemByPath(IEnumerable<FileSystemItem> rootItems, string fullPath)
+        {
+            if (string.IsNullOrEmpty(fullPath))
+            {
+                return null;
+            }
+
+            // 將路徑標準化，並拆解成各個部分
+            // 例如 "C:\Users\UserA" -> ["C:", "Users", "aman"]
+            // Path.GetFullPath 能夠處理如 ".." 等相對路徑
+            string standardizedPath = Path.GetFullPath(fullPath);
+            string[] pathParts = standardizedPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+            // 處理磁碟機名稱，例如 "C:"
+            string? driveName = Path.GetPathRoot(standardizedPath)?.ToUpperInvariant().TrimEnd(Path.DirectorySeparatorChar);
+            if (string.IsNullOrEmpty(driveName))
+            {
+                return null; // 無法識別根路徑
+            }
+
+            // 尋找根項目（磁碟機）
+            FileSystemItem? currentItem = rootItems.FirstOrDefault(item =>
+                string.Equals(item.FullPath.TrimEnd(Path.DirectorySeparatorChar), driveName, StringComparison.OrdinalIgnoreCase)
+            );
+
+            if (currentItem == null)
+            {
+                return null; // 找不到磁碟機
+            }
+
+            // 開始找子目錄
+            for (int i = 1; i < pathParts.Length; i++)
+            {
+                string partToFind = pathParts[i];
+
+                // 確保當前項目已經載入子項目
+                currentItem.LoadChildren();                
+
+                // 在子項目中尋找匹配的項目
+                FileSystemItem? nextItem = currentItem.Children.FirstOrDefault(child =>
+                    string.Equals(child.Name, partToFind, StringComparison.OrdinalIgnoreCase)
+                );
+
+                if (nextItem == null)
+                {
+                    return null; // 找不到路徑中的下一個部分
+                }
+
+                currentItem = nextItem;
+            }
+
+            return currentItem;
         }
 
         protected void OnPropertyChanged(string propertyName)

@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using MiniPlayer.FileBrowser;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -134,9 +135,11 @@ namespace MiniPlayer
                 {
                     if (selectedLvItem.IsDirectory || selectedLvItem.IsDrive)
                     {
+                        // 如果是目錄或磁碟機，則設定 CurrentDir.CurrentItem
                         try
                         {
-                            CurrentDir.CurrentItem = selectedLvItem; // 使用 CurrentDir
+                            CurrentDir.CurrentItem = selectedLvItem;
+                            return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
                         }
                         catch (Exception ex)
                         {
@@ -145,15 +148,45 @@ namespace MiniPlayer
                     }
                     else
                     {
+                        // 如果是檔案
+
+                        if (".lnk" == Path.GetExtension(selectedLvItem.FullPath).ToLowerInvariant())
+                        {
+                            // 如果是捷徑，解析目標路徑
+                            var result = ShortcutHelper.GetShortcutInfo(selectedLvItem.FullPath);
+                            if (result.Success)
+                            {
+                                if( result.IsDirectory)
+                                {
+                                    try
+                                    {
+                                        CurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
+                                        return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        MessageBox.Show($"{DebugInfo.Current()} 無法打開捷徑：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    }
+                                }
+
+                            }
+                            else
+                            {
+                                MessageBox.Show($"解析失敗: {result.ErrorMessage}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                                return; // 解析失敗，不繼續打開檔案
+                            }
+                        }
+
                         try
                         {
-                            // SelectedItem
+                            // SelectedItem，處理 HistoryEntry 的 SelectedItem
                             var currentHistoryEntry = GetCurrentHistoryEntry();
                             if (currentHistoryEntry != null && CurrentDir.CurrentItem != null)
                             {
                                 currentHistoryEntry.SelectedItem = selectedLvItem;
                                 System.Diagnostics.Debug.WriteLine($"Set SelectedItem to file: {selectedLvItem.FullPath}");
                             }
+
                             // 使用系統預設程式打開檔案
                             Process.Start(new ProcessStartInfo(selectedLvItem.FullPath) { UseShellExecute = true });
                         }

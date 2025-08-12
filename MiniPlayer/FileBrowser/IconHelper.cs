@@ -94,12 +94,11 @@ namespace MiniPlayer
         {
 
             // 預抓 Directory Icon (資料夾圖示)
-            // 由於檔案系統虛擬化，傳入 "dummy_folder" 即可獲取資料夾圖示。
-            // 這裡使用了 GetFileIconInternal 方法來處理
+            // 傳入 "dummy_folder" 獲取資料夾圖示。
             (_directoryIcon, _) = GetIconInternal("dummy_folder", true);
 
             // 預抓 Unknown Type Icon (未知檔案類型圖示)
-            // 這裡傳入一個沒有副檔名的路徑來模擬未知類型檔案。            
+            // 傳入一個沒有副檔名的路徑來模擬未知類型檔案。
             BitmapSource? unknownIcon;
             (unknownIcon, _unknownTypeIIcon) = GetIconInternal("dummy_file", false);
             if (unknownIcon != null)
