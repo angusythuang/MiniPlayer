@@ -132,9 +132,9 @@ namespace MiniPlayer
             }
             else if (SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
             {
-                // 如果是特殊副檔名，使用 IconHelper 的 GetItemIcon 方法
+                // 如果是特殊副檔名，先設定為使用 _icon，顯示時再載入。
                 // 且不存入 IconHelper 的 cache
-                _icon = IconHelper.GetItemIcon(_fullPath, false);
+                _icon = null;
                 _isUseIconMember = true;
             }
             else
@@ -185,6 +185,11 @@ namespace MiniPlayer
             {
                 if (_isUseIconMember)
                 {
+                    if( _icon == null)
+                    {
+                        // 不存入 IconHelper 的 cache
+                        _icon = IconHelper.GetItemIcon(_fullPath, false);
+                    }
                     return _icon;
                 }
                 else
