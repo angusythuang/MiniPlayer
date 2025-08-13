@@ -58,11 +58,6 @@ namespace MiniPlayer
 
             try
             {
-                // 使用 Dispatcher.BeginInvoke 將加載操作排入 UI 執行緒的背景優先級，
-                // 這樣 UI 就不會被長時間的檔案系統讀取操作卡住。
-#if DEBUG
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-#endif
                 this.Cursor = Cursors.Wait;
                 // 添加目錄，使用現有的 FileSystemItem 的 Children 屬性
                 foreach (var child in item.Children)
@@ -70,11 +65,6 @@ namespace MiniPlayer
                     CurrentDirectoryItems.Add(child);
                 }
 
-#if DEBUG
-                sw.Stop();
-                System.Diagnostics.Debug.WriteLine($"lvFileList 載入目錄花費時間: {sw.ElapsedMilliseconds} ms");
-                sw.Restart();
-#endif
                 // 載入檔案
                 foreach (string file in Directory.GetFiles(path))
                 {
@@ -113,12 +103,6 @@ namespace MiniPlayer
                 }
 
                 this.Cursor = Cursors.Arrow;
-
-#if DEBUG
-                sw.Stop();
-                System.Diagnostics.Debug.WriteLine($"lvFileList 載入檔案花費時間: {sw.ElapsedMilliseconds} ms");      
-#endif
-
             }
             catch (UnauthorizedAccessException ex)
             {
