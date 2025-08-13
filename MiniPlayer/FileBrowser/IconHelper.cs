@@ -143,7 +143,7 @@ namespace MiniPlayer
                     return cachedIcon;
                 }
 
-                // Missing，呼叫 GetAndCacheIcon 處理
+                // Missing，呼叫 GetAndCacheIcon 取得該檔案的 icon，並加入快取b
                 icon = GetAndCacheIcon(filePath, extension);
             }
             else
@@ -153,6 +153,7 @@ namespace MiniPlayer
                 
             }
 
+            // 如果 icon 為 null，則回傳未知類型的圖示
             return icon == null ? _iconCacheByIIcon[_unknownTypeIIcon] : icon;
         }
 

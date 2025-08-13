@@ -106,7 +106,14 @@ namespace MiniPlayer
 
                     // 同步 UI：更新 lvFileList、tvNVPane                    
                     LoadItemsForListView(currentItem);
-                    SelectTreeViewItemByPath(currentItem);
+                    SelectTreeViewItem(currentItem);
+
+#if DEBUG
+                    //if (TreeViewItemHelper.FindTreeViewItem(tvNVPane, currentItem) == null)
+                    //{
+                    //    ;
+                    //}
+#endif
                 }
                 else
                 {

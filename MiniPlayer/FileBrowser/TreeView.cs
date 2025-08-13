@@ -114,7 +114,7 @@ namespace MiniPlayer
         /// 將目前的 FileSystemItem 設定為選中項目。此方法只操作資料模型。
         /// UI 滾動行為將由 TreeViewItemHelper 自動處理。
         /// </summary>
-        private void SelectTreeViewItemByPath(FileSystemItem targetItem)
+        private void SelectTreeViewItem(FileSystemItem targetItem)
         {
             if (targetItem == null || string.IsNullOrEmpty(targetItem.FullPath))
             {
@@ -122,15 +122,16 @@ namespace MiniPlayer
             }
 
             // 展開所有父節點
-            var parent = targetItem.Parent;
-            while (parent != null)
-            {
-                parent.IsExpanded = true;
-                parent = parent.Parent;
-            }
+            targetItem.ExpandAllParents();
+            //targetItem.IsExpanded = true; // 確保當前項目被展開
 
-            // 設定當前項目為選取狀態。這將觸發附加屬性中的邏輯。
-            targetItem.IsSelected = true;
+            
+            Dispatcher.BeginInvoke(() =>
+            {
+                // 設定當前項目為選取狀態。這將觸發附加屬性中的邏輯。
+                targetItem.IsSelected = true;
+            }, DispatcherPriority.Render);  // 確定 tvNVPane 已渲染完成
+
         }
 
         /// <summary>
@@ -153,7 +154,7 @@ namespace MiniPlayer
                         this.Cursor = Cursors.Wait;
                         fileSystemItem.LoadChildren(); // 調用 FileSystemItem 中的加載子項目方法
                         this.Cursor = Cursors.Arrow;
-                    }), DispatcherPriority.Background); // Background 優先級確保 UI 保持響應
+                    }), DispatcherPriority.Render); // Background 優先級確保 UI 保持響應
 
                 }
             }
@@ -195,8 +196,17 @@ namespace MiniPlayer
                     // 僅當點擊的是目錄或磁碟機時更新 CurrentDir
                     if (clickedItem.IsDirectory || clickedItem.IsDrive)
                     {
-                        CurrentDir.CurrentItem = clickedItem; // 更新 CurrentDir，觸發 PropertyChanged
-                        clickedItem.IsSelected = true; // 設定視覺選中
+                        if (CurrentDir.CurrentItem.FullPath != clickedItem.FullPath)
+                        {
+                            CurrentDir.CurrentItem = clickedItem; // 更新 CurrentDir，觸發 PropertyChanged
+                        }
+                        else
+                        {
+                            // 如果點擊的項目已經是當前目錄，則強制更新以重新載入子目錄
+                            CurrentDir.ForceUpdate();
+                        }
+
+                            clickedItem.IsSelected = true; // 設定視覺選中
                     }
                 }
             }

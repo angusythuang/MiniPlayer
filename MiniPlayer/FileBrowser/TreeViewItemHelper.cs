@@ -47,24 +47,6 @@ namespace MiniPlayer
             }
         }
 
-        // 監聽 IsSelected 屬性變更的核心方法
-        //private static void OnIsSelectedChanged(object? sender, EventArgs e)
-        //{
-        //    if (sender is TreeViewItem tvi && tvi.IsSelected)
-        //    {              
-        //        tvi.Dispatcher.InvokeAsync(() =>
-        //        {
-        //            System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Enter Scrolled to selected item: {(tvi.DataContext as FileSystemItem)?.IsSelected}");
-        //            // 再次檢查 IsLoaded，確保 TreeViewItem 仍是 UI 樹的一部分
-        //            if (tvi.IsLoaded)
-        //            {
-        //                // 呼叫 BringIntoView() 滾動到可視範圍
-        //                tvi.BringIntoView();
-        //                System.Diagnostics.Debug.WriteLine($"[TreeViewItemHelper] Scrolled to selected item: {(tvi.DataContext as FileSystemItem)?.FullPath}");
-        //            }
-        //        }, DispatcherPriority.Render);
-        //    }
-        //}
         private static void OnIsSelectedChanged(object? sender, EventArgs e)
         {
             if (sender is TreeViewItem tvi && tvi.DataContext is FileSystemItem item)
@@ -78,18 +60,7 @@ namespace MiniPlayer
                 tvi.Dispatcher.InvokeAsync(() =>
                 {
                     // 確保所有父節點都已展開。這是確保 TreeViewItem 容器被生成的前提。
-                    FileSystemItem? current = item;
-                    while (current != null && current.Parent != null)
-                    {
-                        if (!current.Parent.IsExpanded)
-                        {
-                            current.Parent.IsExpanded = true;
-                            Debug.WriteLine($"[TreeViewItemHelper] Forcing parent expand: {current.Parent.FullPath}");
-                            // 在沒有虛擬化的情況下，這會導致立即生成子項目。
-                            // 但我們仍然需要等待這些新生成的項目完成佈局。
-                        }
-                        current = current.Parent;
-                    }
+                    item.ExpandAllParents();
 
                     // 關鍵點：在項目完全佈局完成後再呼叫 BringIntoView()
                     // 由於沒有虛擬化，這裡不需要複雜的 ItemContainerGenerator 檢查，
@@ -134,5 +105,47 @@ namespace MiniPlayer
                 }, DispatcherPriority.Render); // 第一次 InvokeAsync
             }
         }
+
+#region Debug用
+#if DEBUG
+        /// <summary>
+        /// 只搜尋目前已產生的 TreeViewItem，不強制展開。
+        /// </summary>
+        public static TreeViewItem? FindTreeViewItem(TreeView treeView, FileSystemItem target)
+        {
+            foreach (var item in treeView.Items)
+            {
+                var tvi = treeView.ItemContainerGenerator.ContainerFromItem(item) as TreeViewItem;
+                var found = FindTreeViewItemRecursive(tvi, target);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+
+        private static TreeViewItem? FindTreeViewItemRecursive(TreeViewItem? tvi, FileSystemItem target)
+        {
+            if (tvi == null) return null;
+
+            if (tvi.DataContext is FileSystemItem fsItem &&
+                ReferenceEquals(fsItem, target))
+            {
+                return tvi;
+            }
+
+            // 只搜尋已產生的子 TreeViewItem，不展開
+            foreach (var child in tvi.Items)
+            {
+                var childTvi = tvi.ItemContainerGenerator.ContainerFromItem(child) as TreeViewItem;
+                var found = FindTreeViewItemRecursive(childTvi, target);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+#endif
+#endregion
+
+
     }
 }

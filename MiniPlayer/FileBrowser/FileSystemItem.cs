@@ -67,7 +67,7 @@ namespace MiniPlayer
         private FileSystemItem? _parent;
 
         // 用於存儲子目錄的集合(排除隱藏目錄、無權存取目錄與檔案；檔案在 lvFileList 裡面動態載入)
-        private ObservableCollection<FileSystemItem> _children;
+        private ObservableCollection<FileSystemItem> _children;        
         private readonly ICollectionView _childrenView;
 
         // 用於存儲圖示的 BitmapSource；如果是目錄則直接使用 IconHelper 的 DirectoryIcon
@@ -223,34 +223,58 @@ namespace MiniPlayer
             }
         }
 
-        public void LoadChildren()
+        public void LoadChildren(bool isForce = false)
         {
-            if (_children.Count == 1 && _children[0].FullPath == "DummyChild")
+            if (_children.Count == 1 && _children[0].FullPath == "DummyChild" || isForce)
             {
+#if DEBUG
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+#endif
+
                 // 如果只有一個 DummyChild，表示需要載入子目錄
                 _children.Clear();
                 try
                 {
-                    // 只載入子目錄
-                    foreach (var dir in Directory.GetDirectories(FullPath))
+                    // 取得所有非隱藏且有讀取權限的子目錄
+                    var dirs = Directory.GetDirectories(FullPath)
+                        .Where(dir => (new DirectoryInfo(dir).Attributes & FileAttributes.Hidden) == 0 && HasReadAccess(dir))
+                        .ToList();
+
+                    foreach (var dir in dirs)
                     {
-                        DirectoryInfo dirInfo = new DirectoryInfo(dir);
-                        if ((dirInfo.Attributes & FileAttributes.Hidden) == 0)
-                        {                            
-                            if (HasReadAccess(dir)) // 檢查是否有讀取權限，有才會加入
-                                _children.Add(new FileSystemItem(dir, isDirectory: true, isDrive: false, this)); // 設定 Parent 為當前項目
-                        }
+                        _children.Add(new FileSystemItem(dir, isDirectory: true, isDrive: false, this));
                     }
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    //_children.Add(new FileSystemItem("Access Denied", false, false, this) { Name = "無權限訪問" });
                 }
                 catch (Exception)
                 {
-                    //_children.Add(new FileSystemItem("Error", false, false, this) { Name = $"載入錯誤: {ex.Message}" });
+                    // 可選：_children.Add(new FileSystemItem("Error", false, false, this) { Name = $"載入錯誤" });
                 }
                 _childrenView.Refresh();
+
+#if DEBUG
+                sw.Stop();
+                System.Diagnostics.Debug.WriteLine($"FileSystemItem 載入子目錄花費時間: {sw.ElapsedMilliseconds} ms");
+#endif
+            }
+
+        }
+
+        public void ExpandAllParents()
+        {
+            Stack<FileSystemItem> stack = new Stack<FileSystemItem>();
+            FileSystemItem node = this;
+            while (node.Parent != null)
+            {
+                stack.Push(node.Parent); // 用 Stack 反轉順序
+                node = node.Parent;
+            }
+
+            // 由上往下展開
+            while (stack.Count > 0)
+            {
+                node = stack.Pop();
+                if (!node.IsExpanded) // 只在未展開時才需要展開
+                    node.IsExpanded = true;
             }
         }
 
@@ -270,7 +294,7 @@ namespace MiniPlayer
             }
         }
 
-        public static FileSystemItem? FindItemByPath(IEnumerable<FileSystemItem> rootItems, string fullPath)
+        public static FileSystemItem? FindItemByPath(IEnumerable<FileSystemItem> rootItems, string? fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
             {
@@ -306,7 +330,7 @@ namespace MiniPlayer
                 string partToFind = pathParts[i];
 
                 // 確保當前項目已經載入子項目
-                currentItem.LoadChildren();                
+                currentItem.LoadChildren();
 
                 // 在子項目中尋找匹配的項目
                 FileSystemItem? nextItem = currentItem.Children.FirstOrDefault(child =>
