@@ -50,7 +50,7 @@ namespace MiniPlayer
 
         #endregion
 
-        #region COM 介面與 P/Invoke
+        #region P/Invoke
 
         // 導入 Windows API 函式
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -61,9 +61,6 @@ namespace MiniPlayer
 
         [DllImport("comctl32.dll", SetLastError = true)]
         public static extern IntPtr ImageList_GetIcon(IntPtr himl, int i, uint flags);
-
-        [DllImport("comctl32.dll")]
-        private static extern int ImageList_GetImageCount(IntPtr himl);
 
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
@@ -214,36 +211,19 @@ namespace MiniPlayer
         private static (BitmapSource?, int) GetIconInternal(string filePath, bool isDirectory)
         {
             SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_ICON | SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
-            uint fileAttributes = FILE_ATTRIBUTE_NORMAL;
+            uint flags = SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES; // iIcon、大圖示 & 檔案/目錄不存在也有 icon
+            uint fileAttributes = FILE_ATTRIBUTE_NORMAL; // 預設為一般檔案屬性
 
             if (isDirectory)
             {
-                fileAttributes = FILE_ATTRIBUTE_DIRECTORY;
+                fileAttributes = FILE_ATTRIBUTE_DIRECTORY; // 如果是目錄，則使用目錄屬性
                 // 目錄開啟狀態
                 flags |= SHGFI_OPENICON;
             }
 
-            IntPtr result = SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
+            SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
 
-            if (shfi.hIcon != IntPtr.Zero)
-            {
-                try
-                {
-                    BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
-                        shfi.hIcon,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromEmptyOptions()
-                    );
-                    bs.Freeze(); // 凍結後，指標的內容永遠指向當前的物件，不可修改；可跨執行緒安全使用。
-                    return (bs, shfi.iIcon);
-                }
-                finally
-                {
-                    DestroyIcon(shfi.hIcon);
-                }
-            }
-            return (null, 0);
+            return (GetIconFromSystemImageList(shfi.iIcon), shfi.iIcon);
         }
 
         /// <summary>
