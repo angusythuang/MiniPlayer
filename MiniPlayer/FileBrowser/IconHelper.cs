@@ -129,8 +129,8 @@ namespace MiniPlayer
                 // 無副檔名
                 if (string.IsNullOrEmpty(extension))
                 {
-                    // 直接從快取a 回傳靜態成員的 Unknown type icon
-                    return _iconCacheByIIcon[_unknownTypeIIcon];
+                    // 回傳Unknown type icon
+                    return GetUnknownIcon();
                 }
 
                 // 檢查快取b
@@ -151,9 +151,13 @@ namespace MiniPlayer
             }
 
             // 如果 icon 為 null，則回傳未知類型的圖示
-            return icon == null ? _iconCacheByIIcon[_unknownTypeIIcon] : icon;
+            return icon ?? GetUnknownIcon();
         }
 
+        public static BitmapSource GetUnknownIcon()
+        {
+            return _iconCacheByIIcon[_unknownTypeIIcon];
+        }
         /// <summary>
         /// 清除全部副檔名快取。
         /// </summary>
@@ -202,7 +206,6 @@ namespace MiniPlayer
                 _iconCacheByExtension[extension] = bs;
             }
             return bs;
-
         }
 
         /// <summary>
