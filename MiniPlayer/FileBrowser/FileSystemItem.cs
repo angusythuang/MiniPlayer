@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
+using System.Windows;
 
 namespace MiniPlayer
 {
@@ -32,8 +33,6 @@ namespace MiniPlayer
             }
         }
 
-        private string _manualName = "";
-
         private bool _isSelected;
         public bool IsSelected
         {
@@ -62,18 +61,40 @@ namespace MiniPlayer
             }
         }
 
-
         // 父目錄；當前項目是磁碟機時，父目錄為 null
         private FileSystemItem? _parent;
+        public FileSystemItem? Parent
+        {
+            get => _parent;
+            set
+            {
+                _parent = value;
+                OnPropertyChanged(nameof(Parent));
+            }
+        }
 
         // 用於存儲子目錄的集合(排除隱藏目錄、無權存取目錄與檔案；檔案在 lvFileList 裡面動態載入)
-        private ObservableCollection<FileSystemItem> _children;        
+        private ObservableCollection<FileSystemItem> _children;
+        public ObservableCollection<FileSystemItem> Children
+        {
+            get => _children;
+            set
+            {
+                _children = value;
+                OnPropertyChanged(nameof(Children));
+            }
+        }
+
         private readonly ICollectionView _childrenView;
+        public ICollectionView ChildrenView => _childrenView;
 
         // 用於存儲圖示的 BitmapSource；如果是目錄則直接使用 IconHelper 的 DirectoryIcon
         // 磁碟機則使用 IconHelper 的 GetItemIcon 方法，且不存入 IconHelper 的 cache
         private BitmapSource? _icon;
         private bool _isUseIconMember;
+
+        private static readonly HashSet<string> _iconLoadingSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object _iconLoadingLock = new object();
 
         // 特殊副檔名集合，這些副檔名會抓取各自的 icon，且不存入 IconHelper 的 cache；使用 HashSet 加速查詢
         private static readonly HashSet<string> SpecialExtensions = new HashSet<string>
@@ -81,7 +102,67 @@ namespace MiniPlayer
             ".scr", ".exe", ".ico", ".lnk"
         };
 
-        public ICollectionView ChildrenView => _childrenView;
+        private string _manualName = "";
+        public string Name
+        {
+            get
+            {
+                //System.Diagnostics.Debug.WriteLine($"### Name : {FullPath}, IsDirectory: {IsDirectory}, IsDrive: {IsDrive}, UseIconMember: {_isUseIconMember}");
+                if (!string.IsNullOrEmpty(_manualName))
+                {
+                    return _manualName;
+                }
+
+                if (IsDrive)
+                {
+                    try
+                    {
+                        DriveInfo drive = new DriveInfo(FullPath);
+                        return $"{drive.VolumeLabel} ({drive.Name.TrimEnd('\\')})";
+                    }
+                    catch (Exception)
+                    {
+                        return FullPath;
+                    }
+                }
+
+                return Path.GetFileName(_fullPath) ?? _fullPath;
+            }
+            private set
+            {
+                if (_manualName != value)
+                {
+                    _manualName = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
+
+        public BitmapSource? Icon
+        {
+            get
+            {                
+                //System.Diagnostics.Debug.WriteLine($"### Icon : {FullPath}, IsDirectory: {IsDirectory}, IsDrive: {IsDrive}, UseIconMember: {_isUseIconMember}");
+                if (_isUseIconMember)
+                {
+                    return _icon;
+                }
+                else
+                {
+                    // 如果不是使用 IconMember，則在需要時才載入圖示，
+                    // 並且使用副檔名抓icon
+                    return IconHelper.GetItemIcon(_fullPath, true);
+                }
+            }
+            set
+            {
+                if (_icon != value)
+                {
+                    _icon = value;
+                    OnPropertyChanged(nameof(Icon));
+                }
+            }
+        }
 
         public FileSystemItem(string path, bool isDirectory = false, bool isDrive = false, FileSystemItem? parent = null)
         {
@@ -132,10 +213,9 @@ namespace MiniPlayer
             }
             else if (SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
             {
-                // 如果是特殊副檔名，先設定為使用 _icon，顯示時再載入。
-                // 且不存入 IconHelper 的 cache
-                _icon = null;
                 _isUseIconMember = true;
+                _icon = IconHelper.UnknownTypeIcon;
+                StartIconLoader();
             }
             else
             {
@@ -145,88 +225,78 @@ namespace MiniPlayer
             }
         }
 
-        public string Name
-        {
-            get
-            {
-                if (!string.IsNullOrEmpty(_manualName))
-                {
-                    return _manualName;
-                }
+        private static readonly SemaphoreSlim _iconLoadSemaphore = new(3);  // 允許同時3個
 
-                if (IsDrive)
+        private void StartIconLoader()
+        {
+            lock (_iconLoadingLock)
+            {
+                if (_iconLoadingSet.Contains(_fullPath))
+                    return;
+                _iconLoadingSet.Add(_fullPath);
+            }
+
+            Task.Run(async () =>
+            {
+                await _iconLoadSemaphore.WaitAsync(); // 等待可用名額
+                try
                 {
-                    try
+                    var bs = IconHelper.GetItemIcon(_fullPath, false);
+
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
-                        DriveInfo drive = new DriveInfo(FullPath);
-                        return $"{drive.VolumeLabel} ({drive.Name.TrimEnd('\\')})";
-                    }
-                    catch (Exception)
+                        Icon = bs ?? IconHelper.UnknownTypeIcon;
+                    });
+                }
+                finally
+                {
+                    _iconLoadSemaphore.Release();
+
+                    lock (_iconLoadingLock)
                     {
-                        return FullPath;
+                        _iconLoadingSet.Remove(_fullPath);
                     }
                 }
-
-                return Path.GetFileName(_fullPath) ?? _fullPath;
-            }
-            private set
-            {
-                if (_manualName != value)
-                {
-                    _manualName = value;
-                    OnPropertyChanged(nameof(Name));
-                }
-            }
+            });
         }
 
-        public BitmapSource? Icon
-        {
-            get
-            {
-                if (_isUseIconMember)
-                {
-                    if( _icon == null)
-                    {
-                        // 不存入 IconHelper 的 cache
-                        _icon = IconHelper.GetItemIcon(_fullPath, false);
-                    }
-                    return _icon;
-                }
-                else
-                {
-                    // 如果不是使用 IconMember，則在需要時才載入圖示，
-                    // 並且存入 IconHelper 的 cache
-                    return IconHelper.GetItemIcon(_fullPath, true);
-                }
-            }
-            set
-            {
-                if (_icon != value)
-                {
-                    _icon = value;
-                    OnPropertyChanged(nameof(Icon));
-                }
-            }
-        }
+        //private static readonly SemaphoreSlim _iconLoadSemaphore = new SemaphoreSlim(10); // 限制並行載入數量
 
-        public ObservableCollection<FileSystemItem> Children
-        {
-            get => _children;
-            set
-            {
-                _children = value;
-                OnPropertyChanged(nameof(Children));
-            }
-        }
-        public FileSystemItem? Parent
-        {
-            get => _parent;
-            set
-            {
-                _parent = value;
-                OnPropertyChanged(nameof(Parent));
-            }
-        }
+        //private async void LoadIconAsync()
+        //{
+        //    if (_isIconLoaded || !SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
+        //    {
+        //        return; // 僅特殊檔案需要延遲載入
+        //    }
+
+        //    try
+        //    {
+        //        await _iconLoadSemaphore.WaitAsync();
+        //        try
+        //        {
+        //            await Task.Run(() =>
+        //            {
+        //                BitmapSource? icon = IconHelper.GetItemIcon(_fullPath, _isUseIconMember);
+        //                Application.Current.Dispatcher.Invoke(() =>
+        //                {
+        //                    Icon = icon; // 更新圖示並通知 UI
+        //                });
+        //            });
+        //        }
+        //        finally
+        //        {
+        //            _iconLoadSemaphore.Release();
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"Error loading icon for {FullPath}: {ex.Message}");
+        //        Application.Current.Dispatcher.Invoke(() =>
+        //        {
+        //            Icon = IconHelper.GetItemIcon("dummy_file", true); // 載入失敗使用預設圖示
+        //        });
+        //    }
+        //}
 
         public void LoadChildren(bool isForce = false)
         {
@@ -235,7 +305,6 @@ namespace MiniPlayer
 #if DEBUG
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
-
                 // 如果只有一個 DummyChild，表示需要載入子目錄
                 _children.Clear();
                 try
