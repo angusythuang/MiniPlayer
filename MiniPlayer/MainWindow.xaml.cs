@@ -26,6 +26,8 @@ namespace MiniPlayer
         // 時鐘
         private ClockHandler? _clockHandler;
 
+        private double _top, _left, _width, _height;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -34,10 +36,10 @@ namespace MiniPlayer
             System.Drawing.Rectangle workingArea = SWF.Screen.PrimaryScreen?.WorkingArea ?? throw new InvalidOperationException("No primary screen found.");
 
             // 設定視窗的尺寸和位置
-            this.Left = workingArea.Left;
-            this.Top = workingArea.Top;
-            this.Width = workingArea.Width;
-            this.Height = workingArea.Height;
+            _left = workingArea.Left;
+            _top = workingArea.Top;
+            _width = workingArea.Width;
+            _height = workingArea.Height;
 
             // 將視窗的 DataContext 設定為自身，這樣 XAML 就能直接綁定到這裡的屬性
             this.DataContext = this;
@@ -46,7 +48,7 @@ namespace MiniPlayer
 
             InitializeTreeView(); // 初始化 TreeView 集合
             InitializeListView(); // 初始化 ListView 集合            
-            
+
             // 初始化時設定 CurrentDir.CurrentItem 為第一個可用的磁碟機(通常為 C:\ )
             if (DriveInfo.GetDrives().FirstOrDefault(d => d.IsReady) != null)
             {
@@ -74,6 +76,19 @@ namespace MiniPlayer
 
             // 視窗關閉時執行相關的清理工作
             this.Closed += MainWindow_Closed;
+        }
+
+        private void MainWindow_Activated(object sender, EventArgs e)
+        {
+            // 檢查尺寸或位置是否被改變
+            if (this.Top != _top || this.Left != _left || this.Width != _width || this.Height != _height)
+            {
+                // 如果有改變，就還原
+                this.Top = _top;
+                this.Left = _left;
+                this.Width = _width;
+                this.Height = _height;
+            }
         }
 
         // 接收 CurrentDir 的 PropertyChanged 事件，處理 tvNVPane、lvFileList、_navigationHistory
@@ -121,7 +136,7 @@ namespace MiniPlayer
                     MessageBox.Show($"{DebugInfo.Current()} 收到非檔案或磁碟機的參數", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
-        }               
+        }
 
         private void btnExit_Click(object sender, RoutedEventArgs e)
         {

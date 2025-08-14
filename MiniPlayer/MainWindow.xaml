@@ -8,9 +8,9 @@
         xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         mc:Ignorable="d"
         Icon="/MiniPlayer;component/Assert/favicon.ico"
-        Title="MiniPlayer" Background="Black" ResizeMode="NoResize" 
-        WindowStyle="None" 
-        AllowsTransparency="True">
+        Title="MiniPlayer" Background="Black" ResizeMode="NoResize" WindowState="Normal" WindowStyle="None" 
+        AllowsTransparency="True"
+        Activated="MainWindow_Activated" >
     <Window.Resources>
         <ResourceDictionary>
             <!-- 合併外部 Style -->
