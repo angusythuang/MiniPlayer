@@ -71,14 +71,13 @@ namespace MiniPlayer
 
         // 根據您提供的邏輯
         // 兩種快取
-        // 快取 a: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
+        // iIcon快取: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
         private static readonly Dictionary<int, BitmapSource> _iconCacheByIIcon = new Dictionary<int, BitmapSource>();
-
-        // 快取 b: 以標準化副檔名為鍵，儲存 BitmapSource 實例。
-        private static readonly Dictionary<string, BitmapSource> _iconCacheByExtension = new Dictionary<string, BitmapSource>();
-
+        
         private static BitmapSource? _directoryIcon;  // 目錄用的 Icon
+        private static BitmapSource? _unknownTypeIcon;  // 未知類型檔案的 Icon
         private static int _unknownTypeIIcon;         // 未知類型檔案的 iIcon
+        public static BitmapSource? UnknownTypeIcon => _unknownTypeIcon;
 
         private static readonly Guid IID_IImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
 
@@ -86,7 +85,7 @@ namespace MiniPlayer
 
         #region 靜態建構式與屬性
 
-        // 3. 建構式預先載入常用圖示
+        // 建構式預先載入常用圖示
         static IconHelper()
         {
 
@@ -96,11 +95,12 @@ namespace MiniPlayer
 
             // 預抓 Unknown Type Icon (未知檔案類型圖示)
             // 傳入一個沒有副檔名的路徑來模擬未知類型檔案。
-            BitmapSource? unknownIcon;
-            (unknownIcon, _unknownTypeIIcon) = GetIconInternal("dummy_file", false);
-            if (unknownIcon != null)
+            
+            (_unknownTypeIcon, _unknownTypeIIcon) = GetIconInternal("dummy_file", false);
+            if (_unknownTypeIcon != null)
             {
-                _iconCacheByIIcon[_unknownTypeIIcon] = unknownIcon;
+                // 加入 iIcon快取，後續如果有未知類型檔案的請求，直接從快取中取得。
+                _iconCacheByIIcon[_unknownTypeIIcon] = _unknownTypeIcon;
             }
         }
 
@@ -115,33 +115,23 @@ namespace MiniPlayer
         /// 獲取圖示並由呼叫方決定是否加入快取b。
         /// </summary>
         /// <param name="filePath">檔案路徑。</param>
-        /// <param name="useCache">是否加入快取b。</param>
+        /// <param name="isUseExtension">是否只檢查副檔名。</param>
         /// <returns>檔案圖示的 BitmapSource，如果抓不到，則回傳 unknown Type Icon 。</returns>
-        public static BitmapSource GetItemIcon(string filePath, bool useCache)
+        public static BitmapSource GetItemIcon(string filePath, bool isUseExtension)
         {
             BitmapSource? icon;
 
-            if (useCache)
+            if (isUseExtension)
             {
-                // 抓取 icon 時，根據副檔名先確認快取b
+                // 抓取 icon 時，使用副檔名
                 string extension = Path.GetExtension(filePath).ToLowerInvariant();
 
                 // 無副檔名
                 if (string.IsNullOrEmpty(extension))
-                {
-                    // 回傳Unknown type icon
-                    return GetUnknownIcon();
-                }
-
-                // 檢查快取b
-                if (_iconCacheByExtension.TryGetValue(extension, out BitmapSource? cachedIcon))
-                {
-                    // hit
-                    return cachedIcon;
-                }
+                    icon = _unknownTypeIcon;
 
                 // Missing，呼叫 GetAndCacheIcon 取得該檔案的 icon，並加入快取b
-                icon = GetAndCacheIcon(filePath, extension);
+                icon = GetIconByExtInternal (extension);
             }
             else
             {
@@ -151,27 +141,7 @@ namespace MiniPlayer
             }
 
             // 如果 icon 為 null，則回傳未知類型的圖示
-            return icon ?? GetUnknownIcon();
-        }
-
-        public static BitmapSource GetUnknownIcon()
-        {
-            return _iconCacheByIIcon[_unknownTypeIIcon];
-        }
-        /// <summary>
-        /// 清除全部副檔名快取。
-        /// </summary>
-        public static void ClearExtensionCache()
-        {
-            _iconCacheByExtension.Clear();
-        }
-
-        /// <summary>
-        /// 清除特定副檔名快取。
-        /// </summary>
-        public static void ClearExtensionCache(string ext)
-        {
-            _iconCacheByExtension.Remove(ext);
+            return icon ?? _unknownTypeIcon;
         }
 
         #endregion
@@ -181,30 +151,31 @@ namespace MiniPlayer
         /// <summary>
         /// 獲取圖示並進行快取處理。
         /// </summary>
-        private static BitmapSource? GetAndCacheIcon(string filePath, string extension)
+        private static BitmapSource? GetIconByExtInternal(string extension)
         {
-            //取得 iIcon
-            int iIcon = GetIIconFromPath(filePath);
+            // 用假的副檔名取得 iIcon
+            int iIcon = GetIIconFromPath($"dummy_file.{extension}");
 
             BitmapSource? bs;
 
-            // 檢查快取a 
+            // 檢查iIcon快取 
             if (_iconCacheByIIcon.TryGetValue(iIcon, out BitmapSource? existingIcon))
             {
-                bs = existingIcon;
+                // iIcon快取命中，直接返回 icon
+                return existingIcon;
             }
             else
             {
-                // 快取a沒命中，根據 iIcon 抓取 bs
+                // iIcon快取沒命中，根據 iIcon 抓取 bs
                 bs = GetIconFromSystemImageList(iIcon);
             }
 
             if (bs != null)
             {
-                // 加入快取a與快取b
+                // 加入iIcon快取
                 _iconCacheByIIcon[iIcon] = bs;
-                _iconCacheByExtension[extension] = bs;
             }
+
             return bs;
         }
 
