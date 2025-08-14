@@ -260,44 +260,6 @@ namespace MiniPlayer
             });
         }
 
-        //private static readonly SemaphoreSlim _iconLoadSemaphore = new SemaphoreSlim(10); // 限制並行載入數量
-
-        //private async void LoadIconAsync()
-        //{
-        //    if (_isIconLoaded || !SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
-        //    {
-        //        return; // 僅特殊檔案需要延遲載入
-        //    }
-
-        //    try
-        //    {
-        //        await _iconLoadSemaphore.WaitAsync();
-        //        try
-        //        {
-        //            await Task.Run(() =>
-        //            {
-        //                BitmapSource? icon = IconHelper.GetItemIcon(_fullPath, _isUseIconMember);
-        //                Application.Current.Dispatcher.Invoke(() =>
-        //                {
-        //                    Icon = icon; // 更新圖示並通知 UI
-        //                });
-        //            });
-        //        }
-        //        finally
-        //        {
-        //            _iconLoadSemaphore.Release();
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"Error loading icon for {FullPath}: {ex.Message}");
-        //        Application.Current.Dispatcher.Invoke(() =>
-        //        {
-        //            Icon = IconHelper.GetItemIcon("dummy_file", true); // 載入失敗使用預設圖示
-        //        });
-        //    }
-        //}
-
         public void LoadChildren(bool isForce = false)
         {
             if (_children.Count == 1 && _children[0].FullPath == "DummyChild" || isForce)
