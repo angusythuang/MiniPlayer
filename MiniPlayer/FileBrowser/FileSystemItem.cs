@@ -164,8 +164,9 @@ namespace MiniPlayer
                 {
                     sw.Stop();
                     System.Diagnostics.Debug.WriteLine($"### Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
-#endif
+
                 }
+#endif
             }
             set
             {
