@@ -213,7 +213,7 @@ namespace MiniPlayer
         private static (int, uint) GetIIconAndOverlayFromPath(string path, bool isDirectory = false)
         {
             SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_SYSICONINDEX | SHGFI_ATTRIBUTES | SHGFI_LARGEICON | SHGFI_LINKOVERLAY | SHGFI_USEFILEATTRIBUTES;
+            uint flags = SHGFI_SYSICONINDEX | SHGFI_ATTRIBUTES | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
             uint fileAttributes = FILE_ATTRIBUTE_NORMAL; // 預設為檔案屬性
 
             if (isDirectory)
