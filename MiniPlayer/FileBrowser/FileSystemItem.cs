@@ -163,7 +163,7 @@ namespace MiniPlayer
                 finally
                 {
                     sw.Stop();
-                    System.Diagnostics.Debug.WriteLine($"### Load {FullPath} icon: {sw.ElapsedMilliseconds} ms");
+                    System.Diagnostics.Debug.WriteLine($"### Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
 #endif
                 }
             }
@@ -237,7 +237,7 @@ namespace MiniPlayer
             }
         }
 
-        private static readonly SemaphoreSlim _iconLoadSemaphore = new(3);  // 允許同時3個
+        private static readonly SemaphoreSlim _iconLoadSemaphore = new(3);  // 允許同時3個 threads 載入圖示
 
         private void StartIconLoader()
         {
@@ -253,7 +253,14 @@ namespace MiniPlayer
                 await _iconLoadSemaphore.WaitAsync(); // 等待可用名額
                 try
                 {
+#if DEBUG
+                    Stopwatch sw = Stopwatch.StartNew();
+#endif
                     var bs = IconHelper.GetItemIcon(_fullPath, false);
+#if DEBUG   
+                    sw.Stop();
+                    System.Diagnostics.Debug.WriteLine($"### Background Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
+#endif
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
