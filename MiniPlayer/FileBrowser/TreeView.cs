@@ -206,7 +206,7 @@ namespace MiniPlayer
                             CurrentDir.ForceUpdate();
                         }
 
-                            clickedItem.IsSelected = true; // 設定視覺選中
+                            clickedItem.IsSelected = true; // 設定選中項目
                     }
                 }
             }
