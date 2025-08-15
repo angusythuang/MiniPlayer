@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using System.Windows;
+using System.Diagnostics;
 
 namespace MiniPlayer
 {
@@ -141,17 +142,29 @@ namespace MiniPlayer
         public BitmapSource? Icon
         {
             get
-            {                
-                //System.Diagnostics.Debug.WriteLine($"### Icon : {FullPath}, IsDirectory: {IsDirectory}, IsDrive: {IsDrive}, UseIconMember: {_isUseIconMember}");
-                if (_isUseIconMember)
+            {
+#if DEBUG
+                Stopwatch sw = Stopwatch.StartNew();
+                try
                 {
-                    return _icon;
+#endif
+                    if (_isUseIconMember)
+                    {
+                        return _icon;
+                    }
+                    else
+                    {
+                        // 如果不是使用 IconMember，則在需要時才載入圖示，
+                        // 並且使用副檔名抓icon
+                        return IconHelper.GetItemIcon(_fullPath, true);
+                    }
+#if DEBUG
                 }
-                else
+                finally
                 {
-                    // 如果不是使用 IconMember，則在需要時才載入圖示，
-                    // 並且使用副檔名抓icon
-                    return IconHelper.GetItemIcon(_fullPath, true);
+                    sw.Stop();
+                    System.Diagnostics.Debug.WriteLine($"### Load {FullPath} icon: {sw.ElapsedMilliseconds} ms");
+#endif
                 }
             }
             set
