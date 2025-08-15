@@ -48,6 +48,12 @@ namespace MiniPlayer
         //public const uint SFGAO_SHARE = 0x00020000;      // 共享
         //public const uint SFGAO_ENCRYPTED = 0x00002000;  // 加密
 
+        //public const int IDO_SHGIOI_SHARE = 0x0FFFFFFF;
+        public const int IDO_SHGIOI_LINK = 0x0FFFFFFE;
+        //public const int IDO_SHGIOI_SLOWFILE = 0x0FFFFFFD;
+        //public const int IDO_SHGIOI_DEFAULT = 0x0FFFFFFC;
+
+
         // 計算 overlay mask
         private static uint INDEXTOOVERLAYMASK(uint i) => i << 8;
 
@@ -68,12 +74,12 @@ namespace MiniPlayer
 
         [DllImport("comctl32.dll", SetLastError = true)]
         public static extern IntPtr ImageList_GetIcon(IntPtr himl, int i, uint flags);
-
-        [DllImport("comctl32.dll", CharSet = CharSet.Unicode)]
-        public static extern bool ImageList_DrawEx(IntPtr himl, int i, IntPtr hdcDst, int x, int y, int cx, int cy, int rgbBk, int rgbFg, int fStyle);
-
+        
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SHGetIconOverlayIndex(string? pszIconPath, int iIconIndex);
 
         #endregion
 
@@ -192,14 +198,11 @@ namespace MiniPlayer
         /// <summary>
         /// overlay 判斷
         /// </summary>
-        public static uint GetOverlayMask(uint attr)
+        ///         
+        public static uint GetOverlayMask(uint attr, string? ext = null)
         {
             if ((attr & SFGAO_LINK) != 0)
-                return INDEXTOOVERLAYMASK(2); // 捷徑藍色小箭頭
-            //if ((attr & SFGAO_SHARE) != 0)
-            //    return INDEXTOOVERLAYMASK(2); // 共享小手
-            //if ((attr & SFGAO_ENCRYPTED) != 0)
-            //    return INDEXTOOVERLAYMASK(4); // 加密鎖頭
+                return INDEXTOOVERLAYMASK((uint)SHGetIconOverlayIndex(null, IDO_SHGIOI_LINK)); // 捷徑藍色小箭頭
 
             return 0; // 無 overlay
         }
@@ -210,7 +213,7 @@ namespace MiniPlayer
         private static (int, uint) GetIIconAndOverlayFromPath(string path, bool isDirectory = false)
         {
             SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_SYSICONINDEX | SHGFI_ATTRIBUTES | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
+            uint flags = SHGFI_SYSICONINDEX | SHGFI_ATTRIBUTES | SHGFI_LARGEICON | SHGFI_LINKOVERLAY | SHGFI_USEFILEATTRIBUTES;
             uint fileAttributes = FILE_ATTRIBUTE_NORMAL; // 預設為檔案屬性
 
             if (isDirectory)
