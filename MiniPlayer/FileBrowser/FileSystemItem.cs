@@ -99,7 +99,7 @@ namespace MiniPlayer
         // 特殊副檔名集合，這些副檔名會抓取各自的 icon，且不存入 IconHelper 的 cache；使用 HashSet 加速查詢
         private static readonly HashSet<string> SpecialExtensions = new HashSet<string>
         {
-            ".scr", ".exe", ".ico", ".lnk"
+            ".scr", ".exe", ".ico", ".lnk", ".msc"
         };
 
         private string _manualName = "";
