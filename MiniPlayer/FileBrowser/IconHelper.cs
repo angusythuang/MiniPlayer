@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -35,14 +31,25 @@ namespace MiniPlayer
         }
 
         // SHGetFileInfo 函式所需的旗標。
-        public const uint SHGFI_ICON = 0x100;
+        //public const uint SHGFI_ICON = 0x100;
         public const uint SHGFI_SYSICONINDEX = 0x4000;
         public const uint SHGFI_LARGEICON = 0x0;
+        public const uint SHGFI_ATTRIBUTES = 0x000000800;
         //public const uint SHGFI_SMALLICON = 0x1; 
         public const uint SHGFI_OPENICON = 0x2; // 開啟狀態的資料夾圖示
         public const uint SHGFI_USEFILEATTRIBUTES = 0x10; // 使用傳入的 dwFileAttributes 而非檢查檔案路徑
+
         public const uint FILE_ATTRIBUTE_NORMAL = 0x80;
         public const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
+
+        // 常見的 SFGAO_* 屬性旗標
+        public const uint SFGAO_LINK = 0x00010000; // 捷徑
+        public const uint ILD_NORMAL = 0x00000000; // 正常圖示
+        //public const uint SFGAO_SHARE = 0x00020000;      // 共享
+        //public const uint SFGAO_ENCRYPTED = 0x00002000;  // 加密
+
+        // 計算 overlay mask
+        private static uint INDEXTOOVERLAYMASK(uint i) => i << 8;
 
         // ImageList 相關常數
         public const int SHIL_LARGE = 0x0; // 32x32 圖示
@@ -62,6 +69,9 @@ namespace MiniPlayer
         [DllImport("comctl32.dll", SetLastError = true)]
         public static extern IntPtr ImageList_GetIcon(IntPtr himl, int i, uint flags);
 
+        [DllImport("comctl32.dll", CharSet = CharSet.Unicode)]
+        public static extern bool ImageList_DrawEx(IntPtr himl, int i, IntPtr hdcDst, int x, int y, int cx, int cy, int rgbBk, int rgbFg, int fStyle);
+
         [DllImport("shell32.dll", SetLastError = true)]
         public static extern int SHGetImageList(int iImageList, ref Guid riid, out IntPtr ppv);
 
@@ -73,14 +83,15 @@ namespace MiniPlayer
         // 兩種快取
         // iIcon快取: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
         private static readonly Dictionary<int, BitmapSource> _iconCacheByIIcon = new Dictionary<int, BitmapSource>();
-        
+
         private static BitmapSource? _directoryIcon;  // 目錄用的 Icon
+        public static BitmapSource DirectoryIcon => _directoryIcon;         // 外部可直接使用的 DirectoryIcon 屬性
+
         private static BitmapSource? _unknownTypeIcon;  // 未知類型檔案的 Icon
         private static int _unknownTypeIIcon;         // 未知類型檔案的 iIcon
         public static BitmapSource? UnknownTypeIcon => _unknownTypeIcon;
 
         private static readonly Guid IID_IImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
-
         #endregion
 
         #region 靜態建構式與屬性
@@ -88,24 +99,21 @@ namespace MiniPlayer
         // 建構式預先載入常用圖示
         static IconHelper()
         {
-
             // 預抓 Directory Icon (資料夾圖示)
             // 傳入 "dummy_folder" 獲取資料夾圖示。
-            (_directoryIcon, _) = GetIconInternal("dummy_folder", true);
+            //(iIcon, _) = GetIIconAndOverlayFromPath("dummy_folder", true);
+            _directoryIcon = GetIconFromSystemImageList(GetIIconAndOverlayFromPath("dummy_folder", true).Item1, ILD_NORMAL); // 抓取目錄圖示
 
             // 預抓 Unknown Type Icon (未知檔案類型圖示)
             // 傳入一個沒有副檔名的路徑來模擬未知類型檔案。
-            
-            (_unknownTypeIcon, _unknownTypeIIcon) = GetIconInternal("dummy_file", false);
+            (_unknownTypeIIcon, _) = GetIIconAndOverlayFromPath("dummy_file");
+            _unknownTypeIcon = GetIconFromSystemImageList(_unknownTypeIIcon, ILD_NORMAL); // 抓取未知類型檔案圖示
             if (_unknownTypeIcon != null)
             {
                 // 加入 iIcon快取，後續如果有未知類型檔案的請求，直接從快取中取得。
                 _iconCacheByIIcon[_unknownTypeIIcon] = _unknownTypeIcon;
             }
         }
-
-        // 外部可直接使用的 DirectoryIcon 屬性
-        public static BitmapSource DirectoryIcon => _directoryIcon;
 
         #endregion
 
@@ -117,7 +125,7 @@ namespace MiniPlayer
         /// <param name="filePath">檔案路徑。</param>
         /// <param name="isUseExtension">是否只檢查副檔名。</param>
         /// <returns>檔案圖示的 BitmapSource，如果抓不到，則回傳 unknown Type Icon 。</returns>
-        public static BitmapSource GetItemIcon(string filePath, bool isUseExtension)
+        public static BitmapSource GetItemIcon(string filePath, bool isUseExtension = false)
         {
             BitmapSource? icon;
 
@@ -130,14 +138,15 @@ namespace MiniPlayer
                 if (string.IsNullOrEmpty(extension))
                     icon = _unknownTypeIcon;
 
-                // Missing，呼叫 GetAndCacheIcon 取得該檔案的 icon，並加入快取b
-                icon = GetIconByExtInternal (extension);
+                // Missing，呼叫 GetIconByExt 取得該副檔名的 icon
+                icon = GetIconByExt(extension);
             }
             else
             {
-                // 不使用快取，直接呼叫 GetIconInternal
-                (icon, _) = GetIconInternal(filePath, false);
-                
+                // 不使用副檔名，直接從路徑取得圖示
+                var (iIcon, attr) = GetIIconAndOverlayFromPath(filePath);
+                icon = GetIconFromSystemImageList(iIcon, attr);
+
             }
 
             // 如果 icon 為 null，則回傳未知類型的圖示
@@ -151,10 +160,11 @@ namespace MiniPlayer
         /// <summary>
         /// 獲取圖示並進行快取處理。
         /// </summary>
-        private static BitmapSource? GetIconByExtInternal(string extension)
+        private static BitmapSource? GetIconByExt(string extension)
         {
             // 用假的副檔名取得 iIcon
-            int iIcon = GetIIconFromPath($"dummy_file.{extension}");
+            int iIcon;
+            (iIcon, _) = GetIIconAndOverlayFromPath($"dummy_file.{extension}");
 
             BitmapSource? bs;
 
@@ -167,7 +177,7 @@ namespace MiniPlayer
             else
             {
                 // iIcon快取沒命中，根據 iIcon 抓取 bs
-                bs = GetIconFromSystemImageList(iIcon);
+                bs = GetIconFromSystemImageList(iIcon, ILD_NORMAL); // 抓正常圖示，不須加任 overlay
             }
 
             if (bs != null)
@@ -180,13 +190,28 @@ namespace MiniPlayer
         }
 
         /// <summary>
-        /// 獲取圖示。
+        /// overlay 判斷
         /// </summary>
-        private static (BitmapSource?, int) GetIconInternal(string filePath, bool isDirectory)
+        public static uint GetOverlayMask(uint attr)
+        {
+            if ((attr & SFGAO_LINK) != 0)
+                return INDEXTOOVERLAYMASK(2); // 捷徑藍色小箭頭
+            //if ((attr & SFGAO_SHARE) != 0)
+            //    return INDEXTOOVERLAYMASK(2); // 共享小手
+            //if ((attr & SFGAO_ENCRYPTED) != 0)
+            //    return INDEXTOOVERLAYMASK(4); // 加密鎖頭
+
+            return 0; // 無 overlay
+        }
+
+        /// <summary>
+        /// 取得檔案的圖示索引與 overlay mask
+        /// </summary>
+        private static (int, uint) GetIIconAndOverlayFromPath(string path, bool isDirectory = false)
         {
             SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES; // iIcon、大圖示 & 檔案/目錄不存在也有 icon
-            uint fileAttributes = FILE_ATTRIBUTE_NORMAL; // 預設為一般檔案屬性
+            uint flags = SHGFI_SYSICONINDEX | SHGFI_ATTRIBUTES | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
+            uint fileAttributes = FILE_ATTRIBUTE_NORMAL; // 預設為檔案屬性
 
             if (isDirectory)
             {
@@ -195,26 +220,15 @@ namespace MiniPlayer
                 flags |= SHGFI_OPENICON;
             }
 
-            SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
+            SHGetFileInfo(path, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
 
-            return (GetIconFromSystemImageList(shfi.iIcon), shfi.iIcon);
+            return (shfi.iIcon, GetOverlayMask(shfi.dwAttributes));
         }
 
         /// <summary>
-        /// 獲取路徑對應的系統圖示索引 (iIcon)。
+        /// 由 iIcon 與 overlayMask 取得 BitmapSource
         /// </summary>
-        private static int GetIIconFromPath(string filePath)
-        {
-            SHFILEINFO shfi = new SHFILEINFO();
-            uint flags = SHGFI_SYSICONINDEX | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES;
-            uint fileAttributes = FILE_ATTRIBUTE_NORMAL;
-            // 雖然這個方法不返回圖示，但為了獲取 iIcon，仍需呼叫 SHGetFileInfo。
-            // 這裡不需要處理 hIcon，因為它會被忽略。
-            SHGetFileInfo(filePath, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
-            return shfi.iIcon;
-        }
-        
-        private static BitmapSource? GetIconFromSystemImageList(int iIcon)
+        private static BitmapSource? GetIconFromSystemImageList(int iIcon, uint overlayMask)
         {
             IntPtr hImageList = IntPtr.Zero;
             try
@@ -224,7 +238,9 @@ namespace MiniPlayer
                 if (result == 0 && ppv != IntPtr.Zero)
                 {
                     hImageList = ppv;
-                    IntPtr hIcon = ImageList_GetIcon(hImageList, iIcon, 0);
+
+                    IntPtr hIcon = ImageList_GetIcon(hImageList, iIcon, overlayMask);
+
                     if (hIcon != IntPtr.Zero)
                     {
                         try
