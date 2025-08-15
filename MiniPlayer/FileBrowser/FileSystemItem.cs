@@ -206,7 +206,6 @@ namespace MiniPlayer
                 else if (IsDrive)
                 {
                     // 如果是磁碟機，使用 IconHelper 的 GetItemIcon 方法
-                    // 且不存入 IconHelper 的 cache
                     _icon = IconHelper.GetItemIcon(_fullPath, false);
                     _isUseIconMember = true;
                 }
