@@ -219,22 +219,7 @@ namespace MiniPlayer
             SHGetFileInfo(path, fileAttributes, ref shfi, (uint)Marshal.SizeOf(shfi), flags);
 
             if (shfi.hIcon != IntPtr.Zero)
-            {
-                try
-                {
-                    BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
-                        shfi.hIcon,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromEmptyOptions()
-                    );
-                    bs.Freeze();
-                    return (shfi.iIcon, bs);
-                }
-                finally
-                {
-                    DestroyIcon(shfi.hIcon);
-                }
-            }
+                return (shfi.iIcon, CreateBSFromHIcon(shfi.hIcon));
             else
                 return (_unknownTypeIIcon, _unknownTypeIcon);
         }
@@ -276,22 +261,9 @@ namespace MiniPlayer
                     IntPtr hIcon = ImageList_GetIcon(hImageList, iIcon, overlayMask);
 
                     if (hIcon != IntPtr.Zero)
-                    {
-                        try
-                        {
-                            BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
-                                hIcon,
-                                Int32Rect.Empty,
-                                BitmapSizeOptions.FromEmptyOptions()
-                            );
-                            bs.Freeze();
-                            return bs;
-                        }
-                        finally
-                        {
-                            DestroyIcon(hIcon);
-                        }
-                    }
+                        return CreateBSFromHIcon(hIcon);
+                    else
+                        return _unknownTypeIcon;
                 }
             }
             finally
@@ -302,6 +274,24 @@ namespace MiniPlayer
                 }
             }
             return null;
+        }
+
+        private static BitmapSource CreateBSFromHIcon(IntPtr hIcon)
+        {
+            try
+            {
+                BitmapSource bs = Imaging.CreateBitmapSourceFromHIcon(
+                    hIcon,
+                    Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions()
+                );
+                bs.Freeze();
+                return bs;
+            }
+            finally
+            {
+                DestroyIcon(hIcon);
+            }
         }
 
         #endregion
