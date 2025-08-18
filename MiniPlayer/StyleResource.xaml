@@ -353,7 +353,7 @@
                             <Setter TargetName="Bd" Property="Background" Value="#ADD6FF"/>
                             <Setter Property="Foreground" Value="Black"/>
                             <Setter Property="BorderBrush" Value="Black"/>
-                            <Setter Property="BorderThickness" Value="1"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -398,7 +398,7 @@
                 <Setter Property="Background" Value="#ADD6FF"/>
                 <Setter Property="Foreground" Value="Black"/>
                 <Setter Property="BorderBrush" Value="Black"/>
-                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderThickness" Value="0"/>
             </Trigger>
 
             <MultiDataTrigger>
