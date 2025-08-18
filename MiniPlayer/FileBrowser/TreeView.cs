@@ -33,7 +33,7 @@ namespace MiniPlayer
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("TreeViewRootItemsView is not a ListCollectionView. CustomSort cannot be applied.");
+                DebugInfo.PrintDebugMsg("TreeViewRootItemsView is not a ListCollectionView. CustomSort cannot be applied.");
             }
 
             // 載入磁碟機到 TreeView
@@ -60,7 +60,7 @@ namespace MiniPlayer
                 catch (Exception ex)
                 {
                     // 捕獲並處理無法訪問的磁碟機錯誤 (例如光碟機沒有光碟時)
-                    System.Diagnostics.Debug.WriteLine($"無法載入磁碟機 {drive.Name}: {ex.Message}");
+                    DebugInfo.PrintDebugMsg($"無法載入磁碟機 {drive.Name}: {ex.Message}");
                     // 你也可以選擇在這裡添加一個表示錯誤的 FileSystemItem
                     // TreeViewRootItems.Add(new FileSystemItem(drive.Name, false) { Name = $"{drive.Name} (不可用)" });
                 }
@@ -86,7 +86,7 @@ namespace MiniPlayer
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"新增磁碟機 {drivePath} 失敗: {ex.Message}");
+                DebugInfo.PrintDebugMsg($"新增磁碟機 {drivePath} 失敗: {ex.Message}");
                 MessageBox.Show($"{DebugInfo.Current()} 新增磁碟機 {drivePath} 失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

@@ -155,22 +155,11 @@ namespace MiniPlayer
             {
                 _driveWatcher.Stop();
                 _driveWatcher.Dispose(); // 釋放資源
-                System.Diagnostics.Debug.WriteLine("磁碟機變更監聽器已停止。");
+                DebugInfo.PrintDebugMsg("磁碟機變更監聽器已停止。");
             }
 
             // 時鐘停止
             _clockHandler?.StopClock();
-        }
-
-        public static class DebugInfo
-        {
-            public static string Current(
-                [CallerFilePath] string file = "",
-                [CallerLineNumber] int line = 0,
-                [CallerMemberName] string func = "")
-            {
-                return $"[{Path.GetFileName(file)}:{line} - {func}]";
-            }
         }
     }
 }

@@ -47,7 +47,7 @@ namespace MiniPlayer
                 else
                 {
                     // 路徑無效
-                    System.Diagnostics.Debug.WriteLine($"無效的路徑: {_currentItem.FullPath}");
+                    DebugInfo.PrintDebugMsg($"無效的路徑: {_currentItem.FullPath}");
                 }
             }
 

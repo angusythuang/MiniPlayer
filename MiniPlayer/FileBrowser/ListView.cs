@@ -34,7 +34,7 @@ namespace MiniPlayer
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("CurrentDirectoryItemsView is not a ListCollectionView. CustomSort cannot be applied.");
+                DebugInfo.PrintDebugMsg("CurrentDirectoryItemsView is not a ListCollectionView. CustomSort cannot be applied.");
             }
         }
 
@@ -91,7 +91,7 @@ namespace MiniPlayer
                     {
                         lvFileList.SelectedItem = itemToSelect;
                         lvFileList.ScrollIntoView(itemToSelect);
-                        System.Diagnostics.Debug.WriteLine($"Selected ListView item: {itemToSelect.FullPath}");
+                        DebugInfo.PrintDebugMsg($"Selected ListView item: {itemToSelect.FullPath}");
                     }
                 }
                 else
@@ -112,7 +112,7 @@ namespace MiniPlayer
                 {
                     _navigationHistory.RemoveAt(_currentHistoryIndex);
                     _currentHistoryIndex = Math.Max(-1, _currentHistoryIndex - 1);
-                    System.Diagnostics.Debug.WriteLine($"Removed unauthorized history entry: {path}");
+                    DebugInfo.PrintDebugMsg($"Removed unauthorized history entry: {path}");
                 }
             }
             catch (Exception ex)
@@ -123,7 +123,7 @@ namespace MiniPlayer
                 {
                     _navigationHistory.RemoveAt(_currentHistoryIndex);
                     _currentHistoryIndex = Math.Max(-1, _currentHistoryIndex - 1);
-                    System.Diagnostics.Debug.WriteLine($"Removed error history entry: {path}");
+                    DebugInfo.PrintDebugMsg($"Removed error history entry: {path}");
                 }
             }
         }
@@ -189,7 +189,7 @@ namespace MiniPlayer
                             if (currentHistoryEntry != null && CurrentDir.CurrentItem != null)
                             {
                                 currentHistoryEntry.SelectedItem = selectedLvItem;
-                                System.Diagnostics.Debug.WriteLine($"Set SelectedItem to file: {selectedLvItem.FullPath}");
+                                DebugInfo.PrintDebugMsg($"Set SelectedItem to file: {selectedLvItem.FullPath}");
                             }
 
                             // 使用系統預設程式打開檔案

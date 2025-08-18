@@ -108,7 +108,7 @@ namespace MiniPlayer
         {
             get
             {
-                //System.Diagnostics.Debug.WriteLine($"### Name : {FullPath}, IsDirectory: {IsDirectory}, IsDrive: {IsDrive}, UseIconMember: {_isUseIconMember}");
+                //DebugInfo.PrintDebugMsg($"### Name : {FullPath}, IsDirectory: {IsDirectory}, IsDrive: {IsDrive}, UseIconMember: {_isUseIconMember}");
                 if (!string.IsNullOrEmpty(_manualName))
                 {
                     return _manualName;
@@ -163,7 +163,7 @@ namespace MiniPlayer
                 finally
                 {
                     sw.Stop();
-                    System.Diagnostics.Debug.WriteLine($"### Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
+                    DebugInfo.PrintDebugMsg($"### Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
 
                 }
 #endif
@@ -208,7 +208,7 @@ namespace MiniPlayer
                 catch (DirectoryNotFoundException) { }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error checking for subdirectories in {FullPath}: {ex.Message}");
+                    DebugInfo.PrintDebugMsg($"Error checking for subdirectories in {FullPath}: {ex.Message}");
                 }
 
                 if (IsDirectory)
@@ -260,7 +260,7 @@ namespace MiniPlayer
                     BitmapSource bs = IconHelper.GetItemIcon(_fullPath, false);
 #if DEBUG   
                     sw.Stop();
-                    System.Diagnostics.Debug.WriteLine($"### Background Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
+                    DebugInfo.PrintDebugMsg($"### Background Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
 #endif
                     // 在 UI 執行緒中更新 Icon 
                     Application.Current.Dispatcher.Invoke(() =>
@@ -312,7 +312,7 @@ namespace MiniPlayer
 
 #if DEBUG
                 sw.Stop();
-                System.Diagnostics.Debug.WriteLine($"FileSystemItem 載入子目錄花費時間: {sw.ElapsedMilliseconds} ms");
+                DebugInfo.PrintDebugMsg($"FileSystemItem 載入子目錄花費時間: {sw.ElapsedMilliseconds} ms");
 #endif
             }
 

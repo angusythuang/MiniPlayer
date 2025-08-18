@@ -70,7 +70,7 @@ namespace MiniPlayer
             {
                 _currentHistoryIndex--;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
-                System.Diagnostics.Debug.WriteLine($"Navigating back to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
+                DebugInfo.PrintDebugMsg($"Navigating back to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
                 CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
                 // Optionally, update the TreeView selection
@@ -89,7 +89,7 @@ namespace MiniPlayer
             {
                 _currentHistoryIndex++;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
-                System.Diagnostics.Debug.WriteLine($"Navigating next to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
+                DebugInfo.PrintDebugMsg($"Navigating next to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
                 CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
                 // Optionally, update the TreeView selection
@@ -186,13 +186,13 @@ namespace MiniPlayer
                         if (currentItem.Parent == previousEntry.Item)
                         {
                             previousEntry.SelectedItem = currentItem;
-                            System.Diagnostics.Debug.WriteLine($"Set previous entry's SelectedItem to subfolder: {currentItem.FullPath}");
+                            DebugInfo.PrintDebugMsg($"Set previous entry's SelectedItem to subfolder: {currentItem.FullPath}");
                         }
                         // 父目錄：前一個歷史項目的 Parent 等於當前項目
                         else if (previousEntry.Item.Parent == currentItem)
                         {
                             newEntry.SelectedItem = previousEntry.Item;
-                            System.Diagnostics.Debug.WriteLine($"Set current entry's SelectedItem to subfolder: {previousEntry.Item.FullPath}");
+                            DebugInfo.PrintDebugMsg($"Set current entry's SelectedItem to subfolder: {previousEntry.Item.FullPath}");
                         }
                     }
 
@@ -202,7 +202,7 @@ namespace MiniPlayer
                     }
                     _navigationHistory.Add(newEntry);
                     _currentHistoryIndex = _navigationHistory.Count - 1;
-                    System.Diagnostics.Debug.WriteLine($"Added history entry: {path}, Index: {_currentHistoryIndex}");
+                    DebugInfo.PrintDebugMsg($"Added history entry: {path}, Index: {_currentHistoryIndex}");
                 }
 
                 return (true, currentItem);
@@ -241,12 +241,12 @@ namespace MiniPlayer
                     {
                         _navigationHistory.RemoveAt(i);
                         _currentHistoryIndex--;
-                        System.Diagnostics.Debug.WriteLine($"Removed invalid history entry (index <= _currentHistoryIndex): {historyPath}, New Index: {_currentHistoryIndex}");
+                        DebugInfo.PrintDebugMsg($"Removed invalid history entry (index <= _currentHistoryIndex): {historyPath}, New Index: {_currentHistoryIndex}");
                     }
                     else
                     {
                         _navigationHistory.RemoveAt(i);
-                        System.Diagnostics.Debug.WriteLine($"Removed invalid history entry (index > _currentHistoryIndex): {historyPath}");
+                        DebugInfo.PrintDebugMsg($"Removed invalid history entry (index > _currentHistoryIndex): {historyPath}");
                     }
                 }
             }

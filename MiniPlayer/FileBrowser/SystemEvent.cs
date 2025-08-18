@@ -31,7 +31,7 @@ namespace MiniPlayer
 
                 // 啟動監聽
                 _driveWatcher.Start();
-                System.Diagnostics.Debug.WriteLine("磁碟機變更監聽器已啟動。");
+                DebugInfo.PrintDebugMsg("磁碟機變更監聽器已啟動。");
             }
             catch (Exception ex)
             {
@@ -63,13 +63,13 @@ namespace MiniPlayer
                     return;
                 }
 
-                System.Diagnostics.Debug.WriteLine($"偵測到磁碟機事件：{eventType}, 磁碟機: {driveName}, EventType: {eventTypeValue}");
+                DebugInfo.PrintDebugMsg($"偵測到磁碟機事件：{eventType}, 磁碟機: {driveName}, EventType: {eventTypeValue}");
 
                 if (eventType == "Win32_VolumeChangeEvent" && eventTypeValue.HasValue)
                 {
                     if (eventTypeValue == 2) // 設備到達（插入）
                     {
-                        System.Diagnostics.Debug.WriteLine("偵測到插入磁碟機 {driveName} 事件。嘗試選中新磁碟機。");
+                        DebugInfo.PrintDebugMsg("偵測到插入磁碟機 {driveName} 事件。嘗試選中新磁碟機。");
                         AddDriveToTreeView(driveName);
 
                         if (!string.IsNullOrEmpty(driveName))
@@ -85,7 +85,7 @@ namespace MiniPlayer
                     }
                     else if (eventTypeValue == 3) // 設備移除（拔出）
                     {
-                        System.Diagnostics.Debug.WriteLine("偵測到移除磁碟機 {driveName} 事件。回退到歷史記錄前一個項目。");
+                        DebugInfo.PrintDebugMsg("偵測到移除磁碟機 {driveName} 事件。回退到歷史記錄前一個項目。");
                         // 呼叫移除磁碟機，同時 TreeView 會自動更新顯示
                         RemoveDriveFromTreeView(driveName);
 
@@ -95,7 +95,7 @@ namespace MiniPlayer
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"未知的 EventType: {eventTypeValue}. 已重新載入磁碟機。");
+                        DebugInfo.PrintDebugMsg($"未知的 EventType: {eventTypeValue}. 已重新載入磁碟機。");
                     }
                 }
             });
