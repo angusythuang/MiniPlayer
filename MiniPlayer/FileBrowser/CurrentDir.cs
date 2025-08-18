@@ -42,7 +42,7 @@ namespace MiniPlayer
                 // 檢查路徑有效性
                 if (System.IO.Directory.Exists(_currentItem.FullPath))
                 {
-                    _currentItem.LoadChildren();
+                    _currentItem.LoadChildren(true);
                 }
                 else
                 {
