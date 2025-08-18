@@ -181,6 +181,13 @@
                                         </GridViewColumn>
                                     </GridView>
                                 </ListView.View>
+
+                                <ListView.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click"/>
+                                    </ContextMenu>
+                                </ListView.ContextMenu>
+                                
                             </ListView>
                         </Border>
                     </Grid>
