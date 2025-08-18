@@ -287,6 +287,8 @@ namespace MiniPlayer
 #if DEBUG
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
+                bool oriIsExpanded = IsExpanded; // 儲存展開狀態
+
                 // 如果只有一個 DummyChild，表示需要載入子目錄
                 _children.Clear();
                 try
@@ -300,6 +302,7 @@ namespace MiniPlayer
                     {
                         _children.Add(new FileSystemItem(dir, isDirectory: true, isDrive: false, this));
                     }
+                    IsExpanded = oriIsExpanded; // 恢復展開狀態
                 }
                 catch (Exception)
                 {
