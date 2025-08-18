@@ -227,8 +227,8 @@ namespace MiniPlayer
             else if (SpecialExtensions.Contains(Path.GetExtension(_fullPath).ToLowerInvariant()))
             {
                 _isUseIconMember = true;
-                _icon = IconHelper.UnknownTypeIcon;
-                StartIconLoader();
+                _icon = IconHelper.GetItemIcon(_fullPath, true); // 先抓預設Icon
+                StartIconLoader(); // 啟動背景載入真正的Icon
             }
             else
             {
@@ -257,15 +257,15 @@ namespace MiniPlayer
 #if DEBUG
                     Stopwatch sw = Stopwatch.StartNew();
 #endif
-                    var bs = IconHelper.GetItemIcon(_fullPath, false);
+                    BitmapSource bs = IconHelper.GetItemIcon(_fullPath, false);
 #if DEBUG   
                     sw.Stop();
                     System.Diagnostics.Debug.WriteLine($"### Background Load {FullPath} icon in: {sw.ElapsedMilliseconds} ms");
 #endif
-
+                    // 在 UI 執行緒中更新 Icon 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        Icon = bs ?? IconHelper.UnknownTypeIcon;
+                       Icon = bs; 
                     });
                 }
                 finally
