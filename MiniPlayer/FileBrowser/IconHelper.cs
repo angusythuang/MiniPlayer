@@ -92,10 +92,10 @@ namespace MiniPlayer
         // iIcon快取: 以系統圖示索引 (iIcon) 為鍵，儲存 BitmapSource 實例。
         private static readonly Dictionary<int, BitmapSource> _iconCacheByIIcon = new Dictionary<int, BitmapSource>();
 
-        private static BitmapSource? _directoryIcon;  // 目錄用的 Icon
+        private static BitmapSource _directoryIcon;  // 目錄用的 Icon
         public static BitmapSource DirectoryIcon => _directoryIcon;         // 外部可直接使用的 DirectoryIcon 屬性
 
-        private static BitmapSource? _unknownTypeIcon;  // 未知類型檔案的 Icon
+        private static BitmapSource _unknownTypeIcon;  // 未知類型檔案的 Icon
         private static int _unknownTypeIIcon;         // 未知類型檔案的 iIcon
 
         private static readonly Guid IID_IImageList = new Guid("46EB5926-582E-4017-9FDF-E8998DAA0950");
@@ -105,11 +105,7 @@ namespace MiniPlayer
 
         // 建構式預先載入常用圖示
         static IconHelper()
-        {
-            // 預抓 Directory Icon (資料夾圖示)
-            // 傳入 "dummy_folder" 獲取資料夾圖示。
-            (_, _directoryIcon) = GetIconFromPath("dummy_folder", true); // 直接從路徑取得目錄圖示
-
+        {            
             // 預抓 Unknown Type Icon (未知檔案類型圖示)
             // 傳入一個沒有副檔名的路徑來模擬未知類型檔案。
             (_unknownTypeIIcon, _unknownTypeIcon) = GetIconFromPath("dummy_file");
@@ -118,6 +114,10 @@ namespace MiniPlayer
                 // 加入 iIcon快取，後續如果有未知類型檔案的請求，直接從快取中取得。
                 _iconCacheByIIcon[_unknownTypeIIcon] = _unknownTypeIcon;
             }
+
+            // 預抓 Directory Icon (資料夾圖示)
+            // 傳入 "dummy_folder" 獲取資料夾圖示。
+            (_, _directoryIcon) = GetIconFromPath("dummy_folder", true); // 直接從路徑取得目錄圖示
         }
 
         #endregion
