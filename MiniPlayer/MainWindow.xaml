@@ -25,14 +25,11 @@
             <local:ClipboardManager x:Key="ClipboardManager" />
             <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
             <ContextMenu x:Key="FileSystemItemContextMenu">
-                <MenuItem Header="刪除"
-                      FontSize="33"
-                      Click="MenuItem_Delete_Click"
-                      IsEnabled="{Binding IsDeletable}" />
-                <MenuItem Header="貼上"
-                      FontSize="33"
-                      Click="MenuItem_Paste_Click"
-                      IsEnabled="{Binding Source={StaticResource ClipboardManager}, Path=HasContentToPaste}" />
+                <MenuItem Header="剪下" FontSize="33" Click="MenuItem_Cut_Click" />
+                <MenuItem Header="複製" FontSize="33" Click="MenuItem_Copy_Click" />
+                <MenuItem Header="貼上" FontSize="33" Click="MenuItem_Paste_Click" IsEnabled="{Binding Source={StaticResource ClipboardManager}, Path=HasContentToPaste}" />
+                <Separator/>
+                <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click" IsEnabled="{Binding IsDeletable}" />
             </ContextMenu>
 
         </ResourceDictionary>
