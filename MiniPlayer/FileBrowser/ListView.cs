@@ -137,72 +137,78 @@ namespace MiniPlayer
             {
                 if (sender is ListViewItem item && item.DataContext is FileSystemItem selectedLvItem)
                 {
-                    if (selectedLvItem.IsDirectory || selectedLvItem.IsDrive)
+                    Launch_FileSystemItem(selectedLvItem);
+                }
+            }
+        }
+
+        private void Launch_FileSystemItem(FileSystemItem item)
+        {
+            if (item.IsDirectory || item.IsDrive)
+            {
+                // 如果是目錄或磁碟機，則設定 CurrentDir.CurrentItem
+                try
+                {
+                    ConcurrentDir.CurrentItem = item;
+                    return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"{DebugInfo.Current()} 無法打開目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            else
+            {
+                // 如果是檔案
+
+                if (".lnk" == Path.GetExtension(item.FullPath).ToLowerInvariant())
+                {
+                    // 如果是捷徑，解析目標路徑
+                    var result = ShortcutHelper.GetShortcutInfo(item.FullPath);
+                    if (result.Success)
                     {
-                        // 如果是目錄或磁碟機，則設定 CurrentDir.CurrentItem
-                        try
+                        if (result.IsDirectory)
                         {
-                            ConcurrentDir.CurrentItem = selectedLvItem;
-                            return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"{DebugInfo.Current()} 無法打開目錄：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                            try
+                            {
+
+                                ConcurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"無法打開捷徑：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+
+                            // 直接返回，後面為檔案處理。
+                            return;
                         }
                     }
                     else
                     {
-                        // 如果是檔案
-
-                        if (".lnk" == Path.GetExtension(selectedLvItem.FullPath).ToLowerInvariant())
-                        {
-                            // 如果是捷徑，解析目標路徑
-                            var result = ShortcutHelper.GetShortcutInfo(selectedLvItem.FullPath);
-                            if (result.Success)
-                            {
-                                if (result.IsDirectory)
-                                {
-                                    try
-                                    {
-
-                                        ConcurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        MessageBox.Show($"無法打開捷徑：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    }
-
-                                    // 直接返回，後面為檔案處理。
-                                    return;
-                                }
-                            }
-                            else
-                            {
-                                MessageBox.Show($"解析 .lnk 失敗: {result.ErrorMessage}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                                return; // 解析失敗，不繼續打開檔案
-                            }
-                        }
-
-                        try
-                        {
-                            // SelectedItem，處理 HistoryEntry 的 SelectedItem
-                            var currentHistoryEntry = GetCurrentHistoryEntry();
-                            if (currentHistoryEntry != null && ConcurrentDir.CurrentItem != null)
-                            {
-                                currentHistoryEntry.SelectedItem = selectedLvItem;
-                                DebugInfo.PrintDebugMsg($"Set SelectedItem to file: {selectedLvItem.FullPath}");
-                            }
-
-                            // 使用系統預設程式打開檔案
-                            Process.Start(new ProcessStartInfo(selectedLvItem.FullPath) { UseShellExecute = true });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"{DebugInfo.Current()} 無法打開檔案：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
+                        MessageBox.Show($"解析 .lnk 失敗: {result.ErrorMessage}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return; // 解析失敗，不繼續打開檔案
                     }
                 }
+
+                try
+                {
+                    // SelectedItem，處理 HistoryEntry 的 SelectedItem
+                    var currentHistoryEntry = GetCurrentHistoryEntry();
+                    if (currentHistoryEntry != null && ConcurrentDir.CurrentItem != null)
+                    {
+                        currentHistoryEntry.SelectedItem = item;
+                        DebugInfo.PrintDebugMsg($"Set SelectedItem to file: {item.FullPath}");
+                    }
+
+                    // 使用系統預設程式打開檔案
+                    Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"{DebugInfo.Current()} 無法打開檔案：{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
+
         }
     }
 }

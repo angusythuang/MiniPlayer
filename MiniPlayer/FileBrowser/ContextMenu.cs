@@ -1,4 +1,6 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace MiniPlayer
 {
@@ -41,6 +43,17 @@ namespace MiniPlayer
             FileSystemItem f = (FileSystemItem)lvFileList.SelectedItem;
 
             DebugInfo.PrintDebugMsg($"複製：{f.FullPath}");
-        }   
+        }
+
+        private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem menuItem && menuItem.DataContext is FileSystemItem selectedItem)
+            {
+                this.Cursor = Cursors.Wait;
+                Launch_FileSystemItem(selectedItem);
+                this.Cursor = Cursors.Arrow;
+                DebugInfo.PrintDebugMsg($"開啟：{selectedItem.FullPath}");
+            }
+        }        
     }
 }
