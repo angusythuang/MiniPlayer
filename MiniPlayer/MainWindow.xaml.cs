@@ -21,7 +21,11 @@ namespace MiniPlayer
         // 當前目錄
         public CurrentDir ConcurrentDir = new CurrentDir();
 
-        private ManagementEventWatcher? _driveWatcher = null; // 用於監聽磁碟機變更的物件
+        // 用於監聽磁碟機變更的物件
+        private ManagementEventWatcher? _driveWatcher = null; 
+
+        // 剪貼簿管理器
+        public ClipboardManager clipboardManager = ClipboardManager.Instance;
 
         // 時鐘
         private ClockHandler? _clockHandler;
