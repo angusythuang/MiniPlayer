@@ -164,6 +164,7 @@ namespace MiniPlayer
                                 {
                                     try
                                     {
+
                                         CurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
                                     }
                                     catch (Exception ex)
@@ -177,7 +178,7 @@ namespace MiniPlayer
                             }
                             else
                             {
-                                MessageBox.Show($"解析失敗: {result.ErrorMessage}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show($"解析 .lnk 失敗: {result.ErrorMessage}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return; // 解析失敗，不繼續打開檔案
                             }
                         }
