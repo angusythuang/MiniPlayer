@@ -10,11 +10,11 @@ namespace MiniPlayer
     /// </summary>
     public class CurrentDir : INotifyPropertyChanged
     {
-        private FileSystemItem? _currentItem;
+        private FileSystemItem _currentItem = new FileSystemItem("Dummy_item");
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public FileSystemItem? CurrentItem
+        public FileSystemItem CurrentItem
         {
             get => _currentItem;
             set
