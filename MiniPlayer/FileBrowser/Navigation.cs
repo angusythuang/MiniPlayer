@@ -42,7 +42,7 @@ namespace MiniPlayer
             // Up button
             if (btnUp != null)
             {
-                string currentPath = CurrentDir.CurrentItem.FullPath;
+                string currentPath = ConcurrentDir.CurrentItem.FullPath;
                 bool canGoUp = false; // 直接判斷是否可以向上導航
 
                 if (!string.IsNullOrEmpty(currentPath))
@@ -71,7 +71,7 @@ namespace MiniPlayer
                 _currentHistoryIndex--;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
                 DebugInfo.PrintDebugMsg($"Navigating back to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
-                CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
+                ConcurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
                 // Optionally, update the TreeView selection
                 // You would need to implement a method to select the item in TreeView
@@ -90,7 +90,7 @@ namespace MiniPlayer
                 _currentHistoryIndex++;
                 var targetItem = _navigationHistory[_currentHistoryIndex].Item;
                 DebugInfo.PrintDebugMsg($"Navigating next to: {targetItem.FullPath}, HistoryIndex: {_currentHistoryIndex}");
-                CurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
+                ConcurrentDir.CurrentItem = targetItem; // 修改 CurrentDir
                 targetItem.IsSelected = true;
                 // Optionally, update the TreeView selection
                 // You would need to implement a method to select the item in TreeView
@@ -104,12 +104,12 @@ namespace MiniPlayer
         /// </summary>
         private void btnUp_Click(object sender, RoutedEventArgs e)
         {
-            if (CurrentDir.CurrentItem != null && CurrentDir.CurrentItem.Parent != null)
+            if (ConcurrentDir.CurrentItem != null && ConcurrentDir.CurrentItem.Parent != null)
             {
                 try
                 {
-                    var parentItem = CurrentDir.CurrentItem.Parent;
-                    CurrentDir.CurrentItem = parentItem; // 更新 CurrentDir，觸發 PropertyChanged
+                    var parentItem = ConcurrentDir.CurrentItem.Parent;
+                    ConcurrentDir.CurrentItem = parentItem; // 更新 CurrentDir，觸發 PropertyChanged
                     parentItem.IsSelected = true;
                 }
                 catch (Exception ex)

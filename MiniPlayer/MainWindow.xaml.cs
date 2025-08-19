@@ -19,7 +19,7 @@ namespace MiniPlayer
     public partial class MainWindow : Window
     {
         // 當前目錄
-        public CurrentDir CurrentDir { get; } = new CurrentDir();
+        public CurrentDir ConcurrentDir = new CurrentDir();
 
         private ManagementEventWatcher? _driveWatcher = null; // 用於監聽磁碟機變更的物件
 
@@ -44,7 +44,7 @@ namespace MiniPlayer
             // 將視窗的 DataContext 設定為自身，這樣 XAML 就能直接綁定到這裡的屬性
             this.DataContext = this;
             // 訂閱 CurrentDir 的 PropertyChanged 事件
-            CurrentDir.PropertyChanged += CurrentDir_PropertyChanged;
+            ConcurrentDir.PropertyChanged += CurrentDir_PropertyChanged;
 
             InitializeTreeView(); // 初始化 TreeView 集合
             InitializeListView(); // 初始化 ListView 集合            
@@ -57,7 +57,7 @@ namespace MiniPlayer
                     var driveItemToSelect = TreeViewRootItems.FirstOrDefault(item => item.IsDrive);
                     if (driveItemToSelect != null)
                     {
-                        CurrentDir.CurrentItem = driveItemToSelect; // 設定 CurrentDir
+                        ConcurrentDir.CurrentItem = driveItemToSelect; // 設定 CurrentDir
                         driveItemToSelect.IsSelected = true;
                         TreeViewItem? treeViewItem = tvNVPane.ItemContainerGenerator.ContainerFromItem(driveItemToSelect) as TreeViewItem;
                         if (treeViewItem != null)
@@ -96,7 +96,7 @@ namespace MiniPlayer
         {
             if (e.PropertyName == nameof(CurrentDir.CurrentItem))
             {
-                var currentItem = CurrentDir.CurrentItem;
+                var currentItem = ConcurrentDir.CurrentItem;
                 if (currentItem != null && (currentItem.IsDirectory || currentItem.IsDrive))  // 確保是目錄或磁碟機
                 {
                     // HandleNavigationHistoryUpdate() 會檢查路徑是否有效，並更新歷史紀錄
@@ -106,7 +106,7 @@ namespace MiniPlayer
                         // 路徑無效
                         // 歷史紀錄中已清除無效的路徑
                         // 並退回到前一個有效的路徑
-                        CurrentDir.CurrentItem = targetItem;
+                        ConcurrentDir.CurrentItem = targetItem;
                         return; // 等待下一次 PropertyChanged
                     }
                     else if (!isValid)
