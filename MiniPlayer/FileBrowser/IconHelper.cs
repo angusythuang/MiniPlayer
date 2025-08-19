@@ -105,15 +105,23 @@ namespace MiniPlayer
 
         // 建構式預先載入常用圖示
         static IconHelper()
-        {            
+        {
+            // 先把 _unknownTypeIcon，_directoryIcon 都預設為 MiniPlayer 的 favicon.ico，保證有內容
+            Uri iconUri = new Uri("pack://application:,,,/MiniPlayer;component/Assert/favicon.ico", UriKind.Absolute);
+
+            BitmapImage bitmapSource = new BitmapImage();
+            bitmapSource.BeginInit();
+            bitmapSource.UriSource = iconUri;
+            bitmapSource.EndInit();
+            _unknownTypeIcon = bitmapSource;
+            _directoryIcon = bitmapSource;
+
             // 預抓 Unknown Type Icon (未知檔案類型圖示)
             // 傳入一個沒有副檔名的路徑來模擬未知類型檔案。
             (_unknownTypeIIcon, _unknownTypeIcon) = GetIconFromPath("dummy_file");
-            if (_unknownTypeIcon != null)
-            {
-                // 加入 iIcon快取，後續如果有未知類型檔案的請求，直接從快取中取得。
-                _iconCacheByIIcon[_unknownTypeIIcon] = _unknownTypeIcon;
-            }
+
+            // 加入 iIcon快取，後續如果有未知類型檔案的請求，直接從快取中取得。
+            _iconCacheByIIcon[_unknownTypeIIcon] = _unknownTypeIcon;
 
             // 預抓 Directory Icon (資料夾圖示)
             // 傳入 "dummy_folder" 獲取資料夾圖示。
@@ -164,7 +172,7 @@ namespace MiniPlayer
         /// <summary>
         /// 獲取圖示並進行快取處理。
         /// </summary>
-        private static BitmapSource? GetIconByExt(string extension)
+        private static BitmapSource GetIconByExt(string extension)
         {
             // 用假的副檔名取得 iIcon
             int iIcon = GetIconIndexFromPath($"dummy_file.{extension}");
@@ -195,6 +203,11 @@ namespace MiniPlayer
             {
                 // 加入iIcon快取
                 _iconCacheByIIcon[iIcon] = bs;
+            }
+            else
+            {
+                // 如果 bs 為 null，則回傳未知類型的圖示
+                bs = _unknownTypeIcon;
             }
 
             return bs;
@@ -247,7 +260,7 @@ namespace MiniPlayer
         /// <summary>
         /// 由 iIcon 與 overlayMask 取得 BitmapSource
         /// </summary>
-        private static BitmapSource? GetIconFromSystemImageList(int iIcon, uint overlayMask)
+        private static BitmapSource GetIconFromSystemImageList(int iIcon, uint overlayMask)
         {
             IntPtr hImageList = IntPtr.Zero;
             try
@@ -273,7 +286,9 @@ namespace MiniPlayer
                     Marshal.Release(hImageList);
                 }
             }
-            return null;
+
+            // 如果無法取得圖示，則回傳未知類型的圖示
+            return _unknownTypeIcon;
         }
 
         private static BitmapSource CreateBSFromHIcon(IntPtr hIcon)
