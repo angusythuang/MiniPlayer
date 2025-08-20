@@ -22,16 +22,25 @@
             <converters:WidthConverter x:Key="WidthConverter" />
 
             <!-- 剪貼簿管理器，控制右鍵 context menu 的項目 -->
-            <local:ClipboardManager x:Key="ClipboardManager" />
-            <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
-            <ContextMenu x:Key="FileSystemItemContextMenu">
-                <MenuItem Header="開啟" FontSize="33" Click="MenuItem_Open_Click" />
+            <local:MenuItemStatus x:Key="MenuItemStatus" />
+            <ContextMenu x:Key="RightClickContextMenu">
+                <ContextMenu.Resources>
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Margin" Value="0,5,0,5"/>
+                    </Style>
+                </ContextMenu.Resources>
+                <MenuItem Header="開啟" FontSize="33" Click="MenuItem_Open_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=OpenVisiblity}"/>
                 <Separator/>
-                <MenuItem Header="剪下" FontSize="33" Click="MenuItem_Cut_Click" />
-                <MenuItem Header="複製" FontSize="33" Click="MenuItem_Copy_Click" />
-                <MenuItem Header="貼上" FontSize="33" Click="MenuItem_Paste_Click" IsEnabled="{Binding Source={StaticResource ClipboardManager}, Path=HasContentToPaste}" />
+                
+                <MenuItem Header="退出" FontSize="33" Click="MenuItem_Remove_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=RemoveVisiblity}"/>
+                <Separator Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=RemoveVisiblity}"/>
+                
+                <MenuItem Header="剪下" FontSize="33" Click="MenuItem_Cut_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=CutVisiblity}"/>
+                <MenuItem Header="複製" FontSize="33" Click="MenuItem_Copy_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=CopyVisiblity}"/>
+                <MenuItem Header="貼上" FontSize="33" Click="MenuItem_Paste_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=PasteVisiblity}"/>
                 <Separator/>
-                <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click" IsEnabled="{Binding IsDeletable}" />
+
+                <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=DeleteVisiblity}"/>
             </ContextMenu>
 
         </ResourceDictionary>
@@ -159,7 +168,9 @@
                         </Border>
 
                         <Border Grid.Row="1"  BorderThickness="0" Background="#F4F4F4">
-                            <ListView x:Name="lvFileList" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListView x:Name="lvFileList" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      ContextMenuOpening="lvFileList_ContextMenuOpening"
+                                      ContextMenu="{StaticResource RightClickContextMenu}">
                                 <ListView.ItemsSource>
                                     <Binding Path="CurrentDirectoryItemsView"/>
                                 </ListView.ItemsSource>
@@ -169,8 +180,7 @@
                                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                         <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick"/>
 
-                                        <Setter Property="ContextMenu" Value="{StaticResource FileSystemItemContextMenu}" />
-
+                                        <Setter Property="ContextMenu" Value="{StaticResource RightClickContextMenu}" />
 
                                     </Style>
                                 </ListView.ItemContainerStyle>
@@ -197,13 +207,6 @@
                                         </GridViewColumn>
                                     </GridView>
                                 </ListView.View>
-<!--
-                                <ListView.ContextMenu>
-                                    <ContextMenu FocusManager.IsFocusScope="False">
-                                        <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click"/>
-                                    </ContextMenu>
-                                </ListView.ContextMenu>
--->                                
                             </ListView>
                         </Border>
                     </Grid>

@@ -24,8 +24,8 @@ namespace MiniPlayer
         // 用於監聽磁碟機變更的物件
         private ManagementEventWatcher? _driveWatcher = null; 
 
-        // 剪貼簿管理器
-        public ClipboardManager clipboardManager = ClipboardManager.Instance;
+        // 右鍵選單各項目的狀態
+        private readonly MenuItemStatus _menuItemStatus = MenuItemStatus.Instance;
 
         // 時鐘
         private ClockHandler? _clockHandler;

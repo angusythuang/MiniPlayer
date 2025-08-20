@@ -171,7 +171,6 @@ namespace MiniPlayer
                         {
                             try
                             {
-
                                 ConcurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
                             }
                             catch (Exception ex)
