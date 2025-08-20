@@ -30,7 +30,7 @@
                     </Style>
                 </ContextMenu.Resources>
                 <MenuItem Header="開啟" FontSize="33" Click="MenuItem_Open_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=OpenVisiblity}"/>
-                <Separator/>
+                <Separator Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=OpenVisiblity}"/>
                 
                 <MenuItem Header="退出" FontSize="33" Click="MenuItem_Remove_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=RemoveVisiblity}"/>
                 <Separator Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=RemoveVisiblity}"/>
@@ -38,8 +38,8 @@
                 <MenuItem Header="剪下" FontSize="33" Click="MenuItem_Cut_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=CutVisiblity}"/>
                 <MenuItem Header="複製" FontSize="33" Click="MenuItem_Copy_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=CopyVisiblity}"/>
                 <MenuItem Header="貼上" FontSize="33" Click="MenuItem_Paste_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=PasteVisiblity}"/>
-                <Separator/>
 
+                <Separator Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=DeleteVisiblity}"/>
                 <MenuItem Header="刪除" FontSize="33" Click="MenuItem_Delete_Click" Visibility="{Binding Source={StaticResource MenuItemStatus}, Path=DeleteVisiblity}"/>
             </ContextMenu>
 

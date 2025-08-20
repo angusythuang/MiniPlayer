@@ -6,21 +6,7 @@ namespace MiniPlayer
 {
     public class MenuItemStatus : INotifyPropertyChanged
     {
-        // 確保它是單例模式
-        private static MenuItemStatus? _instance;
-        public static MenuItemStatus Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    _instance = new MenuItemStatus();
-                }
-                return _instance;
-            }
-        }
-
-        // 供複製貼上使用
+        // 供剪下複製貼上使用
         public FileSystemItem? SrcItem { get; set; } = null;
         public FileSystemItem? DestItem { get; set; } = null;
 

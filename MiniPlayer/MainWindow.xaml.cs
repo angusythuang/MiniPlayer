@@ -22,10 +22,10 @@ namespace MiniPlayer
         public CurrentDir ConcurrentDir = new CurrentDir();
 
         // 用於監聽磁碟機變更的物件
-        private ManagementEventWatcher? _driveWatcher = null; 
+        private ManagementEventWatcher? _driveWatcher = null;
 
         // 右鍵選單各項目的狀態
-        private readonly MenuItemStatus _menuItemStatus = MenuItemStatus.Instance;
+        private readonly MenuItemStatus _menuItemStatus;
 
         // 時鐘
         private ClockHandler? _clockHandler;
@@ -35,6 +35,10 @@ namespace MiniPlayer
         public MainWindow()
         {
             InitializeComponent();
+
+
+            _menuItemStatus = this.Resources["MenuItemStatus"] as MenuItemStatus 
+                                ?? throw new InvalidOperationException("找不到 MenuItemStatus resource"); ;
 
             // 取得除了工作列以外的範圍
             System.Drawing.Rectangle workingArea = SWF.Screen.PrimaryScreen?.WorkingArea ?? throw new InvalidOperationException("No primary screen found.");
@@ -128,7 +132,7 @@ namespace MiniPlayer
                     SelectTreeViewItem(currentItem);
 
 #if DEBUG
-                    //if (TreeViewItemHelper.FindTreeViewItem(tvNVPane, currentItem) == null)
+                    //if (TreeViewItemHelper.FindTreeViewItem(tvNVPane, currentItem) is null)
                     //{
                     //    ;
                     //}
