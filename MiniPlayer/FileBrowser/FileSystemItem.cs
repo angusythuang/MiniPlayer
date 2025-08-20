@@ -360,51 +360,66 @@ namespace MiniPlayer
                 return null;
             }
 
-            // 將路徑標準化，並拆解成各個部分
-            // 例如 "C:\Users\UserA" -> ["C:", "Users", "aman"]
-            // Path.GetFullPath 能夠處理如 ".." 等相對路徑
-            string standardizedPath = Path.GetFullPath(fullPath);
-            string[] pathParts = standardizedPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-
-            // 處理磁碟機名稱，例如 "C:"
-            string? driveName = Path.GetPathRoot(standardizedPath)?.ToUpperInvariant().TrimEnd(Path.DirectorySeparatorChar);
-            if (string.IsNullOrEmpty(driveName))
+#if DEBUG
+            Stopwatch sw = Stopwatch.StartNew();
+            try
             {
-                return null; // 無法識別根路徑
-            }
+#endif
 
-            // 尋找根項目（磁碟機）
-            FileSystemItem? currentItem = rootItems.FirstOrDefault(item =>
-                string.Equals(item.FullPath.TrimEnd(Path.DirectorySeparatorChar), driveName, StringComparison.OrdinalIgnoreCase)
-            );
+                // 將路徑標準化，並拆解成各個部分
+                // 例如 "C:\Users\UserA" -> ["C:", "Users", "aman"]
+                // Path.GetFullPath 能夠處理如 ".." 等相對路徑
+                string standardizedPath = Path.GetFullPath(fullPath);
+                string[] pathParts = standardizedPath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
-            if (currentItem == null)
-            {
-                return null; // 找不到磁碟機
-            }
-
-            // 開始找子目錄
-            for (int i = 1; i < pathParts.Length; i++)
-            {
-                string partToFind = pathParts[i];
-
-                // 確保當前項目已經載入子項目
-                currentItem.LoadChildren();
-
-                // 在子項目中尋找匹配的項目
-                FileSystemItem? nextItem = currentItem.Children.FirstOrDefault(child =>
-                    string.Equals(child.Name, partToFind, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (nextItem == null)
+                // 處理磁碟機名稱，例如 "C:"
+                string? driveName = Path.GetPathRoot(standardizedPath)?.ToUpperInvariant().TrimEnd(Path.DirectorySeparatorChar);
+                if (string.IsNullOrEmpty(driveName))
                 {
-                    return null; // 找不到路徑中的下一個部分
+                    return null; // 無法識別根路徑
                 }
 
-                currentItem = nextItem;
-            }
+                // 尋找根項目（磁碟機）
+                FileSystemItem? currentItem = rootItems.FirstOrDefault(item =>
+                    string.Equals(item.FullPath.TrimEnd(Path.DirectorySeparatorChar), driveName, StringComparison.OrdinalIgnoreCase)
+                );
 
-            return currentItem;
+                if (currentItem == null)
+                {
+                    return null; // 找不到磁碟機
+                }
+
+                // 開始找子目錄
+                for (int i = 1; i < pathParts.Length; i++)
+                {
+                    string partToFind = pathParts[i];
+
+                    // 確保當前項目已經載入子項目
+                    currentItem.LoadChildren();
+
+                    // 在子項目中尋找匹配的項目
+                    FileSystemItem? nextItem = currentItem.Children.FirstOrDefault(child =>
+                        string.Equals(child.Name, partToFind, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (nextItem == null)
+                    {
+                        return null; // 找不到路徑中的下一個部分
+                    }
+
+                    currentItem = nextItem;
+                }
+
+                return currentItem;
+
+#if DEBUG
+            }
+            finally
+            {
+                sw.Stop();
+                DebugInfo.PrintDebugMsg($"搜尋 {fullPath} 目標花費時間 {sw.ElapsedMilliseconds} ms");
+            }
+#endif
         }
 
         protected void OnPropertyChanged(string propertyName)
