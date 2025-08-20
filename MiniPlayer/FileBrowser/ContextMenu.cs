@@ -93,13 +93,13 @@ namespace MiniPlayer
 
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
-            //if (sender is MenuItem menuItem && menuItem.DataContext is FileSystemItem selectedItem)
-            //{
-            //    this.Cursor = Cursors.Wait;
-            //    Launch_FileSystemItem(selectedItem);
-            //    this.Cursor = Cursors.Arrow;
-            //    DebugInfo.PrintDebugMsg($"開啟：{selectedItem.FullPath}");
-            //}
+            if (sender is MenuItem menuItem && menuItem.DataContext is FileSystemItem selectedItem)
+            {
+                this.Cursor = Cursors.Wait;
+                Launch_FileSystemItem(selectedItem);
+                this.Cursor = Cursors.Arrow;
+                DebugInfo.PrintDebugMsg($"開啟：{selectedItem.FullPath}");
+            }
         }
 
         private void MenuItem_Remove_Click(object sender, RoutedEventArgs e)
