@@ -116,7 +116,7 @@ namespace MiniPlayer
         /// </summary>
         private void SelectTreeViewItem(FileSystemItem targetItem)
         {
-            if (targetItem == null || string.IsNullOrEmpty(targetItem.FullPath))
+            if (targetItem is null || string.IsNullOrEmpty(targetItem.FullPath))
             {
                 return;
             }

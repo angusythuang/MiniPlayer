@@ -125,7 +125,7 @@ namespace MiniPlayer
 
         private static TreeViewItem? FindTreeViewItemRecursive(TreeViewItem? tvi, FileSystemItem target)
         {
-            if (tvi == null) return null;
+            if (tvi is null) return null;
 
             if (tvi.DataContext is FileSystemItem fsItem &&
                 ReferenceEquals(fsItem, target))

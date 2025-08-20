@@ -384,7 +384,7 @@ namespace MiniPlayer
                     string.Equals(item.FullPath.TrimEnd(Path.DirectorySeparatorChar), driveName, StringComparison.OrdinalIgnoreCase)
                 );
 
-                if (currentItem == null)
+                if (currentItem is null)
                 {
                     return null; // 找不到磁碟機
                 }
@@ -402,7 +402,7 @@ namespace MiniPlayer
                         string.Equals(child.Name, partToFind, StringComparison.OrdinalIgnoreCase)
                     );
 
-                    if (nextItem == null)
+                    if (nextItem is null)
                     {
                         return null; // 找不到路徑中的下一個部分
                     }

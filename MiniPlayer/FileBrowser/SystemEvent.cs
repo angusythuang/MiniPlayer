@@ -57,7 +57,7 @@ namespace MiniPlayer
                     eventTypeValue = Convert.ToInt32(e.NewEvent.Properties["EventType"].Value);
                 }
 
-                if (string.IsNullOrEmpty(driveName) || eventTypeValue == null)
+                if (string.IsNullOrEmpty(driveName) || eventTypeValue is null)
                 {
                     MessageBox.Show($"{DebugInfo.Current()} 無法取得磁碟機名稱或事件類型。", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
