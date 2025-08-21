@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MiniPlayer"
         xmlns:converters="clr-namespace:MiniPlayer.Converters"
-        xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+        xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase" d:DataContext="{d:DesignInstance Type=local:CurrentDir}"
         mc:Ignorable="d"
         Icon="/MiniPlayer;component/Assert/favicon.ico"
         Title="MiniPlayer" Background="Black" ResizeMode="NoResize" WindowState="Normal" WindowStyle="None" 
@@ -163,7 +163,7 @@
                                     <Button x:Name="btnUp" Content="↑" IsEnabled="False" Style="{StaticResource btnNavi}" Click="btnUp_Click"/>
                                 </StackPanel>
 
-                                <TextBox x:Name="tbPath" Text="{Binding CurrentDir.CurrentItem.FullPath, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" IsReadOnly="True"/>
+                                <TextBox x:Name="tbPath" Text="{Binding CurrentDir.CurrentItem.FullPath}" VerticalContentAlignment="Center" IsReadOnly="True"/>
                             </DockPanel>
                         </Border>
 

@@ -79,7 +79,7 @@ namespace MiniPlayer
                             if (newDriveItem != null)
                             {
                                 // 設定 CurrentDir.CurrentItem，觸發 PropertyChanged
-                                ConcurrentDir.CurrentItem = newDriveItem;
+                                CurrentDir.CurrentItem = newDriveItem;
                             }
                         }
                     }
@@ -91,7 +91,7 @@ namespace MiniPlayer
 
                         // 呼叫 ForceUpdate，將觸發 PropertyChanged 事件，
                         // 進而觸發 CleanInvalidHistoryEntries 來自動導航到最近一個有效的歷史路徑
-                        ConcurrentDir.ForceUpdate();
+                        CurrentDir.ForceUpdate();
                     }
                     else
                     {

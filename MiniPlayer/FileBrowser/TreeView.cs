@@ -171,7 +171,7 @@ namespace MiniPlayer
                 if (tvNVPane.SelectedItem is FileSystemItem selectedItem &&
                     (selectedItem.IsDirectory || selectedItem.IsDrive))
                 {
-                    ConcurrentDir.CurrentItem = selectedItem; // 更新 CurrentDir，觸發 PropertyChanged
+                    CurrentDir.CurrentItem = selectedItem; // 更新 CurrentDir，觸發 PropertyChanged
                 }
                 e.Handled = true;
             }
@@ -197,14 +197,14 @@ namespace MiniPlayer
                     // 僅當點擊的是目錄或磁碟機時更新 CurrentDir
                     if (clickedItem.IsDirectory || clickedItem.IsDrive)
                     {
-                        if (ConcurrentDir.CurrentItem.FullPath != clickedItem.FullPath)
+                        if (CurrentDir.CurrentItem.FullPath != clickedItem.FullPath)
                         {
-                            ConcurrentDir.CurrentItem = clickedItem; // 更新 CurrentDir，觸發 PropertyChanged
+                            CurrentDir.CurrentItem = clickedItem; // 更新 CurrentDir，觸發 PropertyChanged
                         }
                         else
                         {
                             // 如果點擊的項目已經是當前目錄，則強制更新以重新載入子目錄
-                            ConcurrentDir.ForceUpdate();
+                            CurrentDir.ForceUpdate();
                         }
 
                             clickedItem.IsSelected = true; // 設定選中項目

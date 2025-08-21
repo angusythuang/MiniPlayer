@@ -26,7 +26,7 @@ namespace MiniPlayer
                     {
                         _currentItem.LoadChildren(); // 自動載入子目錄
                     }
-                    OnPropertyChanged(nameof(CurrentItem));
+                    OnPropertyChanged(nameof(CurrentItem));                    
                 }
             }
         }

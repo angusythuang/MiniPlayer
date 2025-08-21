@@ -153,7 +153,7 @@ namespace MiniPlayer
                 // 如果是目錄或磁碟機，則設定 CurrentDir.CurrentItem
                 try
                 {
-                    ConcurrentDir.CurrentItem = item;
+                    CurrentDir.CurrentItem = item;
                     return; // 直接返回，因為 CurrentDir.CurrentItem 的變更會自動處理子目錄載入
                 }
                 catch (Exception ex)
@@ -175,7 +175,7 @@ namespace MiniPlayer
                         {
                             try
                             {
-                                ConcurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
+                                CurrentDir.CurrentItem = FileSystemItem.FindItemByPath(TreeViewRootItems, result.TargetPath);
                             }
                             catch (Exception ex)
                             {
@@ -197,7 +197,7 @@ namespace MiniPlayer
                 {
                     // SelectedItem，處理 HistoryEntry 的 SelectedItem
                     var currentHistoryEntry = GetCurrentHistoryEntry();
-                    if (currentHistoryEntry != null && ConcurrentDir.CurrentItem != null)
+                    if (currentHistoryEntry != null && CurrentDir.CurrentItem != null)
                     {
                         currentHistoryEntry.SelectedItem = item;
                         DebugInfo.PrintDebugMsg($"Set SelectedItem to file: {item.FullPath}");
