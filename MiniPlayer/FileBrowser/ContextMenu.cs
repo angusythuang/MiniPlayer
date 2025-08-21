@@ -18,7 +18,7 @@ namespace MiniPlayer
             _menuItemStatus.DeleteVisiblity = Visibility.Collapsed;
 
             // 判斷是否有內容可以貼上
-            _menuItemStatus.PasteVisiblity = _menuItemStatus.SrcItem is null ? Visibility.Collapsed : Visibility.Visible;
+            _menuItemStatus.PasteVisiblity = _menuItemStatus.SrcItems is null ? Visibility.Collapsed : Visibility.Visible;
 
             var originalSource = e.OriginalSource as FrameworkElement;
 
@@ -101,7 +101,7 @@ namespace MiniPlayer
                 foreach (FileSystemItem item in selectedItems)
                 {
                     DebugInfo.PrintDebugMsg($"開啟：{item.FullPath}");
-                    // 這裡可以呼叫 Launch_FileSystemItem 方法來處理開啟檔案或資料夾
+                    // Launch_FileSystemItem 方法來處理開啟檔案或資料夾
                     Launch_FileSystemItem(item);
                 }
                 

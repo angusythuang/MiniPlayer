@@ -7,7 +7,7 @@ namespace MiniPlayer
     public class MenuItemStatus : INotifyPropertyChanged
     {
         // 供剪下複製貼上使用
-        public FileSystemItem? SrcItem { get; set; } = null;
+        public List<FileSystemItem>? SrcItems { get; set; } = null;
         public FileSystemItem? DestItem { get; set; } = null;
 
         // 當前操作狀態
