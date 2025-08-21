@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using System.Windows.Threading;
 using SWF = System.Windows.Forms;
 
@@ -168,6 +169,33 @@ namespace MiniPlayer
 
             // 時鐘停止
             _clockHandler?.StopClock();
+        }
+
+        /// <summary>
+        /// 尋找指定類型的父級元素
+        /// </summary>
+        private T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+#if DEBUG
+            Stopwatch sw = Stopwatch.StartNew();
+            try
+            {
+#endif
+
+                while (current != null)
+                {
+                    if (current is T match) return match;
+                    current = VisualTreeHelper.GetParent(current);
+                }
+                return null;
+#if DEBUG
+            }
+            finally
+            {
+                sw.Stop();
+                Debug.WriteLine($"[FindAncestor] 查找 {typeof(T).Name} 耗時: {sw.ElapsedMilliseconds} ms");
+            }
+#endif
         }
     }
 }
