@@ -143,6 +143,9 @@ namespace MiniPlayer
             }
         }
 
+        /// <summary>
+        /// Launch_FileSystemItem 開啟檔案或目錄。
+        /// </summary>
         private void Launch_FileSystemItem(FileSystemItem item)
         {
             if (item.IsDirectory || item.IsDrive)
@@ -214,14 +217,18 @@ namespace MiniPlayer
         // 用於拖曳選取的起點
         private Point? _startPoint = null;
 
-        // 滑鼠左鍵按下事件
+        /// <summary>
+        /// lvFileList_PreviewMouseLeftButtonDown 按下滑鼠左鍵。
+        /// </summary>
         private void lvFileList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // 取得滑鼠按下的起點
             _startPoint = e.GetPosition(lvFileList);
         }
 
-        // 滑鼠移動事件
+        /// <summary>
+        /// lvFileList_PreviewMouseMove 滑鼠移動。
+        /// </summary>
         private void lvFileList_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed && _startPoint.HasValue)
@@ -261,7 +268,9 @@ namespace MiniPlayer
             }
         }
 
-        // 滑鼠左鍵放開事件
+        /// <summary>
+        /// lvFileList_PreviewMouseMove 放開滑鼠左鍵。
+        /// </summary>
         private void lvFileList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             // 拖曳結束，清除起點
