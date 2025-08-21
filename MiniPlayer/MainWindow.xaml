@@ -169,8 +169,12 @@
 
                         <Border Grid.Row="1"  BorderThickness="0" Background="#F4F4F4">
                             <ListView x:Name="lvFileList" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                      SelectionMode ="Extended"
                                       ContextMenuOpening="lvFileList_ContextMenuOpening"
-                                      ContextMenu="{StaticResource RightClickContextMenu}">
+                                      ContextMenu="{StaticResource RightClickContextMenu}"
+                                      PreviewMouseLeftButtonDown="lvFileList_PreviewMouseLeftButtonDown"
+                                      PreviewMouseMove="lvFileList_PreviewMouseMove"
+                                      PreviewMouseLeftButtonUp="lvFileList_PreviewMouseLeftButtonUp">
                                 <ListView.ItemsSource>
                                     <Binding Path="CurrentDirectoryItemsView"/>
                                 </ListView.ItemsSource>

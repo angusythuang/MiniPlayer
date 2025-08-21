@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace MiniPlayer
@@ -208,6 +209,63 @@ namespace MiniPlayer
                 }
             }
 
+        }
+
+        // 用於拖曳選取的起點
+        private Point? _startPoint = null;
+
+        // 滑鼠左鍵按下事件
+        private void lvFileList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 取得滑鼠按下的起點
+            _startPoint = e.GetPosition(lvFileList);
+        }
+
+        // 滑鼠移動事件
+        private void lvFileList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && _startPoint.HasValue)
+            {
+                // 如果滑鼠正在按住且有起點，則計算拖曳範圍
+                Point currentPoint = e.GetPosition(lvFileList);
+
+                // 判斷是否為有效拖曳（移動距離超過一定值）
+                if (Math.Abs(currentPoint.X - _startPoint.Value.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(currentPoint.Y - _startPoint.Value.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    // 清空當前選取，準備重新選取
+                    lvFileList.SelectedItems.Clear();
+
+                    // 取得拖曳範圍的矩形
+                    Rect selectionRect = new Rect(_startPoint.Value, currentPoint);
+
+                    // 迭代 ListView 中的所有項目
+                    foreach (var item in lvFileList.Items)
+                    {
+                        // 獲取項目的視覺樹容器
+                        var container = lvFileList.ItemContainerGenerator.ContainerFromItem(item) as UIElement;
+                        if (container != null)
+                        {
+                            // 將容器的邊界轉換到 ListView 的座標系統
+                            Rect containerBounds = new Rect(container.TranslatePoint(new Point(0, 0), lvFileList), container.RenderSize);
+
+                            // 檢查項目邊界是否與拖曳矩形相交
+                            if (selectionRect.IntersectsWith(containerBounds))
+                            {
+                                // 如果相交，就選取這個項目
+                                lvFileList.SelectedItems.Add(item);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 滑鼠左鍵放開事件
+        private void lvFileList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 拖曳結束，清除起點
+            _startPoint = null;
         }
     }
 }
