@@ -93,12 +93,20 @@ namespace MiniPlayer
 
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is MenuItem menuItem && menuItem.DataContext is FileSystemItem selectedItem)
+            List<FileSystemItem> selectedItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
+
+            if (selectedItems.Count > 0)
             {
                 this.Cursor = Cursors.Wait;
-                Launch_FileSystemItem(selectedItem);
+                foreach (FileSystemItem item in selectedItems)
+                {
+                    DebugInfo.PrintDebugMsg($"開啟：{item.FullPath}");
+                    // 這裡可以呼叫 Launch_FileSystemItem 方法來處理開啟檔案或資料夾
+                    Launch_FileSystemItem(item);
+                }
+                
                 this.Cursor = Cursors.Arrow;
-                DebugInfo.PrintDebugMsg($"開啟：{selectedItem.FullPath}");
+                
             }
         }
 
