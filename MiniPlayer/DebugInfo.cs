@@ -1,5 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace MiniPlayer
 {
@@ -13,12 +14,15 @@ namespace MiniPlayer
             return $"[{Path.GetFileName(file)}:{line} - {func}]";
         }
 
+        /// <summary>
+        /// 只有 DEBUG 模式下才會被編譯，RELEASE版不會有這個呼叫。
+        /// </summary>
+        /// <param name="message"></param>
+        [Conditional("DEBUG")]
         public static void PrintDebugMsg(string message)
         {
-#if DEBUG
             // 使用 Debug.WriteLine 來輸出訊息
             System.Diagnostics.Debug.WriteLine($"{message}");
-#endif
         }
     }
 }
