@@ -126,7 +126,6 @@ namespace MiniPlayer
             _menuItemStatus.SourceItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
             _menuItemStatus.Action = MenuItemStatus.ActionStatus.Cut;
 
-            MessageBox.Show("已剪下項目。", "訊息", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
@@ -136,7 +135,6 @@ namespace MiniPlayer
             _menuItemStatus.SourceItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
             _menuItemStatus.Action = MenuItemStatus.ActionStatus.Copy;
 
-            MessageBox.Show("已複製項目。", "訊息", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
