@@ -53,42 +53,90 @@ namespace MiniPlayer
         }
 
         // ListViewItem_MouseRightButtonDown 右鍵點擊刪除
-        private void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
+        private async void MenuItem_Delete_Click(object sender, RoutedEventArgs e)
         {
-            //if (lvFileList.SelectedItem is null)
-            //{
-            //    MessageBox.Show($"{DebugInfo.Current()} 請先選擇要刪除的項目。", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
-            //    return;
-            //}
+            if (lvFileList.SelectedItems.Count == 0)
+            {
+                MessageBox.Show("請先選擇要刪除的項目。", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            //// 直接拿 lvFileList 的選中項目
-            //FileSystemItem f = (FileSystemItem)lvFileList.SelectedItem;
+            var selectedItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
 
-            //DebugInfo.PrintDebugMsg($"刪除：{f.FullPath}");
+            this.Cursor = Cursors.Wait;
+            try
+            {
+                await FileOperationHelper.Delete(selectedItems);                               
+            }
+            catch (OperationCanceledException ex)
+            {
+                MessageBox.Show(ex.Message, "操作取消", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"刪除失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                this.Cursor = Cursors.Arrow;
+            }
         }
 
-        private void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
+        private async void MenuItem_Paste_Click(object sender, RoutedEventArgs e)
         {
-            //// 直接拿 lvFileList 的選中項目
-            //FileSystemItem f = (FileSystemItem)lvFileList.SelectedItem;
+            if (_menuItemStatus.SourceItems == null || !_menuItemStatus.SourceItems.Any() || CurrentDir.CurrentItem == null)
+            {
+                MessageBox.Show("無法貼上，來源或目的項目無效。", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
-            //DebugInfo.PrintDebugMsg($"貼上：{f.FullPath}");
+            this.Cursor = Cursors.Wait;
+            try
+            {
+                if (_menuItemStatus.Action == MenuItemStatus.ActionStatus.Cut)
+                {
+                    await FileOperationHelper.Move(_menuItemStatus.SourceItems, CurrentDir.CurrentItem);
+                }
+                else if (_menuItemStatus.Action == MenuItemStatus.ActionStatus.Copy)
+                {
+                    await FileOperationHelper.Copy(_menuItemStatus.SourceItems, CurrentDir.CurrentItem);
+                }
+
+                _menuItemStatus.SourceItems = null;
+                _menuItemStatus.Action = MenuItemStatus.ActionStatus.None;
+            }
+            catch (OperationCanceledException ex)
+            {
+                MessageBox.Show(ex.Message, "操作取消", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"貼上失敗: {ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                this.Cursor = Cursors.Arrow;
+            }
         }
 
         private void MenuItem_Cut_Click(object sender, RoutedEventArgs e)
         {
-            //// 直接拿 lvFileList 的選中項目
-            //FileSystemItem f = (FileSystemItem)lvFileList.SelectedItem;
+            if (lvFileList.SelectedItems.Count == 0) return;
 
-            //DebugInfo.PrintDebugMsg($"剪下：{f.FullPath}");
+            _menuItemStatus.SourceItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
+            _menuItemStatus.Action = MenuItemStatus.ActionStatus.Cut;
+
+            MessageBox.Show("已剪下項目。", "訊息", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void MenuItem_Copy_Click(object sender, RoutedEventArgs e)
         {
-            //// 直接拿 lvFileList 的選中項目
-            //FileSystemItem f = (FileSystemItem)lvFileList.SelectedItem;
+            if (lvFileList.SelectedItems.Count == 0) return;
 
-            //DebugInfo.PrintDebugMsg($"複製：{f.FullPath}");
+            _menuItemStatus.SourceItems = lvFileList.SelectedItems.Cast<FileSystemItem>().ToList();
+            _menuItemStatus.Action = MenuItemStatus.ActionStatus.Copy;
+
+            MessageBox.Show("已複製項目。", "訊息", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void MenuItem_Open_Click(object sender, RoutedEventArgs e)
