@@ -18,7 +18,7 @@ namespace MiniPlayer
             _menuItemStatus.DeleteVisiblity = Visibility.Collapsed;
 
             // 判斷是否有內容可以貼上
-            _menuItemStatus.PasteVisiblity = _menuItemStatus.SrcItems is null ? Visibility.Collapsed : Visibility.Visible;
+            _menuItemStatus.PasteVisiblity = _menuItemStatus.SourceItems is null ? Visibility.Collapsed : Visibility.Visible;
 
             var originalSource = e.OriginalSource as FrameworkElement;
 
