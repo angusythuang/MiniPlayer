@@ -1,112 +1,105 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace MiniPlayer
 {
     class FileOperationHelper
     {
-        // --- IFileOperation COM 介面 ---
-        [ComImport]
-        [Guid("947AAB5F-0A5C-4C13-B4D6-4EB6103F4A1C")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        interface IFileOperation
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct SHFILEOPSTRUCT
         {
-            void Advise(); // 不用
-            void Unadvise();
-            void SetOperationFlags(FileOperationFlags operationFlags);
-            void SetProgressMessage([MarshalAs(UnmanagedType.LPWStr)] string message);
-            void SetProgressDialog([MarshalAs(UnmanagedType.IUnknown)] object progressDialog);
+            public IntPtr hwnd;
+            public FileFuncFlags wFunc;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string pFrom;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string pTo;
+            public FileOpFlags fFlags;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool fAnyOperationsAborted;
+            public IntPtr hNameMappings;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string lpszProgressTitle;
+        }
 
-            void DeleteItem(IShellItem psiItem, IntPtr punkProgressSink);
-            void CopyItem(IShellItem psiItem, IShellItem psiDestinationFolder,
-                          [MarshalAs(UnmanagedType.LPWStr)] string newName, IntPtr punkProgressSink);
-            void MoveItem(IShellItem psiItem, IShellItem psiDestinationFolder,
-                          [MarshalAs(UnmanagedType.LPWStr)] string newName, IntPtr punkProgressSink);
-
-            void PerformOperations();
-            void GetAnyOperationsAborted(out bool pfAnyOperationsAborted);
+        private enum FileFuncFlags : uint
+        {
+            FO_MOVE = 0x0001,
+            FO_COPY = 0x0002,
+            FO_DELETE = 0x0003,
+            FO_RENAME = 0x0004,
         }
 
         [Flags]
-        enum FileOperationFlags : uint
+        private enum FileOpFlags : ushort
         {
-            FOF_ALLOWUNDO = 0x40,              // 資源回收桶
-            FOFX_SHOWELEVATIONPROMPT = 0x20000000 // UAC 提示
+            FOF_MULTIDESTFILES = 0x0001,
+            FOF_CONFIRMMOUSE = 0x0002,
+            FOF_SILENT = 0x0004,
+            FOF_RENAMEONCOLLISION = 0x0008,
+            FOF_NOCONFIRMATION = 0x0010,
+            FOF_ALLOWUNDO = 0x0040,
+            FOF_SIMPLEPROGRESS = 0x0100,
+            FOF_NOCONFIRMMKDIR = 0x0200,
+            FOF_NOERRORUI = 0x0400,
+            FOF_WANTNUKEWARNING = 0x4000,
         }
 
-        [ComImport]
-        [Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE")]
-        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        interface IShellItem { }
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern int SHFileOperation(ref SHFILEOPSTRUCT lpFileOp);
 
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        static extern void SHCreateItemFromParsingName(
-            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
-            IBindCtx pbc,
-            [MarshalAs(UnmanagedType.LPStruct)] Guid riid,
-            out IShellItem ppv
-        );
-
-        // 建立 ShellItem
-        private static IShellItem CreateShellItem(string path)
+        // 把多個路徑組合成 SHFileOperation 需要的字串（\0 分隔，最後再加 \0\0）
+        private static string BuildMultiPath(IEnumerable<string> paths)
         {
-            Guid shellItemGuid = typeof(IShellItem).GUID;
-            SHCreateItemFromParsingName(path, null, shellItemGuid, out IShellItem shellItem);
-            return shellItem;
+            return string.Join("\0", paths) + "\0\0";
         }
 
-        // 建立 IFileOperation 實例
-        private static IFileOperation CreateFileOperation()
+        // --- 刪除 (多檔案) ---
+        public static void Delete(IEnumerable<string> paths)
         {
-            Type type = Type.GetTypeFromCLSID(new Guid("3AD05575-8857-4850-9277-11B85BDB8E09"));
-            var fo = (IFileOperation)Activator.CreateInstance(type);
+            var shfo = new SHFILEOPSTRUCT
+            {
+                wFunc = FileFuncFlags.FO_DELETE,
+                pFrom = BuildMultiPath(paths),
+                fFlags = 0 // 會詢問、直接刪除、不進資源回收桶
+            };
 
-            // 設定成允許 UAC
-            fo.SetOperationFlags(FileOperationFlags.FOFX_SHOWELEVATIONPROMPT);
-
-            return fo;
+            int result = SHFileOperation(ref shfo);
+            Console.WriteLine(shfo.fAnyOperationsAborted ? "刪除被取消。" :
+                              result == 0 ? "刪除完成。" : $"刪除失敗，錯誤碼 {result}");
         }
 
-        // --- 刪除 ---
-        public static void Delete(string path)
+        // --- 複製 (多檔案) ---
+        public static void Copy(IEnumerable<string> sources, string destinationFolder)
         {
-            var fo = CreateFileOperation();
-            IShellItem item = CreateShellItem(path);
+            var shfo = new SHFILEOPSTRUCT
+            {
+                wFunc = FileFuncFlags.FO_COPY,
+                pFrom = BuildMultiPath(sources),
+                pTo = destinationFolder + "\0\0",
+                fFlags = FileOpFlags.FOF_NOCONFIRMMKDIR // 自動建資料夾，有重複檔名跳出詢問視窗
+            };
 
-            fo.DeleteItem(item, IntPtr.Zero);
-            fo.PerformOperations();
-            fo.GetAnyOperationsAborted(out bool aborted);
-
-            Console.WriteLine(aborted ? "刪除被取消。" : "刪除完成。");
+            int result = SHFileOperation(ref shfo);
+            Console.WriteLine(shfo.fAnyOperationsAborted ? "複製被取消。" :
+                              result == 0 ? "複製完成。" : $"複製失敗，錯誤碼 {result}");
         }
 
-        // --- 複製 ---
-        public static void Copy(string source, string destinationFolder, string? newName = null)
+        // --- 搬移 (多檔案) ---
+        public static void Move(IEnumerable<string> sources, string destinationFolder)
         {
-            var fo = CreateFileOperation();
-            IShellItem srcItem = CreateShellItem(source);
-            IShellItem destItem = CreateShellItem(destinationFolder);
+            var shfo = new SHFILEOPSTRUCT
+            {
+                wFunc = FileFuncFlags.FO_MOVE,
+                pFrom = BuildMultiPath(sources),
+                pTo = destinationFolder + "\0\0",
+                fFlags = FileOpFlags.FOF_NOCONFIRMMKDIR // 自動建資料夾，有重複檔名跳出詢問視窗
+            };
 
-            fo.CopyItem(srcItem, destItem, newName, IntPtr.Zero);
-            fo.PerformOperations();
-            fo.GetAnyOperationsAborted(out bool aborted);
-
-            Console.WriteLine(aborted ? "複製被取消。" : "複製完成。");
-        }
-
-        // --- 移動 ---
-        public static void Move(string source, string destinationFolder, string? newName = null)
-        {
-            var fo = CreateFileOperation();
-            IShellItem srcItem = CreateShellItem(source);
-            IShellItem destItem = CreateShellItem(destinationFolder);
-
-            fo.MoveItem(srcItem, destItem, newName, IntPtr.Zero);
-            fo.PerformOperations();
-            fo.GetAnyOperationsAborted(out bool aborted);
-
-            Console.WriteLine(aborted ? "搬移被取消。" : "搬移完成。");
+            int result = SHFileOperation(ref shfo);
+            Console.WriteLine(shfo.fAnyOperationsAborted ? "搬移被取消。" :
+                              result == 0 ? "搬移完成。" : $"搬移失敗，錯誤碼 {result}");
         }
     }
 }
