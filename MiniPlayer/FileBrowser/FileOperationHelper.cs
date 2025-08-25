@@ -1,21 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel; // 引入此命名空間
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MiniPlayer
 {
-    class FileOperationHelper
+    public class FileOperationHelper
     {
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        // 確保 SHFileOperation 每次只被一個執行緒呼叫
+        private static readonly SemaphoreSlim _shFileOperationSemaphore = new SemaphoreSlim(1, 1);
+
+        // P/Invoke 宣告：從 shell32.dll 匯入 SHFileOperation 函數
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern int SHFileOperation(ref SHFILEOPSTRUCT fileOp);
+
+        private enum FileOperationType : uint
+        {
+            FO_COPY = 0x0001,
+            FO_MOVE = 0x0002,
+            FO_DELETE = 0x0003,
+            FO_RENAME = 0x0004,
+        }
+
+        [Flags]
+        private enum FileOperationFlags : ushort
+        {
+            FOF_ALLOWUNDO = 0x0040,
+            FOF_WANTNUKEWARNING = 0x4000
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         private struct SHFILEOPSTRUCT
         {
             public IntPtr hwnd;
-            public FileFuncFlags wFunc;
+            public FileOperationType wFunc;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string pFrom;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string pTo;
-            public FileOpFlags fFlags;
+            public FileOperationFlags fFlags;
             [MarshalAs(UnmanagedType.Bool)]
             public bool fAnyOperationsAborted;
             public IntPtr hNameMappings;
@@ -23,83 +50,98 @@ namespace MiniPlayer
             public string lpszProgressTitle;
         }
 
-        private enum FileFuncFlags : uint
+        private static string FormatPaths(List<FileSystemItem> items)
         {
-            FO_MOVE = 0x0001,
-            FO_COPY = 0x0002,
-            FO_DELETE = 0x0003,
-            FO_RENAME = 0x0004,
-        }
-
-        [Flags]
-        private enum FileOpFlags : ushort
-        {
-            FOF_MULTIDESTFILES = 0x0001,
-            FOF_CONFIRMMOUSE = 0x0002,
-            FOF_SILENT = 0x0004,
-            FOF_RENAMEONCOLLISION = 0x0008,
-            FOF_NOCONFIRMATION = 0x0010,
-            FOF_ALLOWUNDO = 0x0040,
-            FOF_SIMPLEPROGRESS = 0x0100,
-            FOF_NOCONFIRMMKDIR = 0x0200,
-            FOF_NOERRORUI = 0x0400,
-            FOF_WANTNUKEWARNING = 0x4000,
-        }
-
-        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        private static extern int SHFileOperation(ref SHFILEOPSTRUCT lpFileOp);
-
-        // 把多個路徑組合成 SHFileOperation 需要的字串（\0 分隔，最後再加 \0\0）
-        private static string BuildMultiPath(IEnumerable<string> paths)
-        {
-            return string.Join("\0", paths) + "\0\0";
-        }
-
-        // --- 刪除 (多檔案) ---
-        public static void Delete(IEnumerable<string> paths)
-        {
-            var shfo = new SHFILEOPSTRUCT
+            var sb = new StringBuilder();
+            foreach (var i in items)
             {
-                wFunc = FileFuncFlags.FO_DELETE,
-                pFrom = BuildMultiPath(paths),
-                fFlags = 0 // 會詢問、直接刪除、不進資源回收桶
-            };
-
-            int result = SHFileOperation(ref shfo);
-            Console.WriteLine(shfo.fAnyOperationsAborted ? "刪除被取消。" :
-                              result == 0 ? "刪除完成。" : $"刪除失敗，錯誤碼 {result}");
+                string path = i.FullPath;
+                sb.Append(path.TrimEnd('\\', '/'));
+                sb.Append('\0');
+            }
+            sb.Append('\0');
+            return sb.ToString();
         }
 
-        // --- 複製 (多檔案) ---
-        public static void Copy(IEnumerable<string> sources, string destinationFolder)
+        /// <summary>
+        /// 私有方法，負責執行緒同步和實際的 SHFileOperation 呼叫，並檢查回傳值。
+        /// </summary>
+        /// <param name="fileOp">已建立好的 SHFILEOPSTRUCT 結構</param>
+        private static async Task ExecuteFileOperationAsync(SHFILEOPSTRUCT fileOp)
         {
-            var shfo = new SHFILEOPSTRUCT
+            await _shFileOperationSemaphore.WaitAsync();
+            try
             {
-                wFunc = FileFuncFlags.FO_COPY,
-                pFrom = BuildMultiPath(sources),
-                pTo = destinationFolder + "\0\0",
-                fFlags = FileOpFlags.FOF_NOCONFIRMMKDIR // 自動建資料夾，有重複檔名跳出詢問視窗
-            };
+                int result = SHFileOperation(ref fileOp);
 
-            int result = SHFileOperation(ref shfo);
-            Console.WriteLine(shfo.fAnyOperationsAborted ? "複製被取消。" :
-                              result == 0 ? "複製完成。" : $"複製失敗，錯誤碼 {result}");
+                if (fileOp.fAnyOperationsAborted)
+                {
+                    // 如果使用者取消了操作
+                    throw new OperationCanceledException("檔案操作被使用者取消。");
+                }
+
+                if (result != 0)
+                {
+                    // 使用 Win32Exception 類別將錯誤碼轉換為有意義的錯誤訊息
+                    throw new Win32Exception(result, $"檔案操作失敗，Win32 錯誤碼: {result}");
+                }
+            }
+            finally
+            {
+                _shFileOperationSemaphore.Release();
+            }
         }
 
-        // --- 搬移 (多檔案) ---
-        public static void Move(IEnumerable<string> sources, string destinationFolder)
+        /// <summary>
+        /// 複製檔案或資料夾。如果目標存在，會自動彈出對話框詢問。
+        /// </summary>
+        public static async Task Copy(List<FileSystemItem> sources, FileSystemItem dest)
         {
-            var shfo = new SHFILEOPSTRUCT
+            var formattedSources = FormatPaths(sources);
+            var destination = dest.FullPath;
+            var fileOp = new SHFILEOPSTRUCT
             {
-                wFunc = FileFuncFlags.FO_MOVE,
-                pFrom = BuildMultiPath(sources),
-                pTo = destinationFolder + "\0\0",
-                fFlags = FileOpFlags.FOF_NOCONFIRMMKDIR // 自動建資料夾，有重複檔名跳出詢問視窗
+                hwnd = IntPtr.Zero,
+                wFunc = FileOperationType.FO_COPY,
+                pFrom = formattedSources,
+                pTo = destination.TrimEnd('\\', '/') + '\0',
+                fFlags = 0
             };
+            await ExecuteFileOperationAsync(fileOp);
+        }
 
-            int result = SHFileOperation(ref shfo);
-            Console.WriteLine(shfo.fAnyOperationsAborted ? "搬移被取消。" :
-                              result == 0 ? "搬移完成。" : $"搬移失敗，錯誤碼 {result}");
+        /// <summary>
+        /// 移動檔案或資料夾。如果目標存在，會自動彈出對話框詢問。
+        /// </summary>
+        public static async Task Move(List<FileSystemItem> sources, FileSystemItem dest)
+        {
+            var formattedSources = FormatPaths(sources);
+            var destination = dest.FullPath;
+            var fileOp = new SHFILEOPSTRUCT
+            {
+                hwnd = IntPtr.Zero,
+                wFunc = FileOperationType.FO_MOVE,
+                pFrom = formattedSources,
+                pTo = destination.TrimEnd('\\', '/') + '\0',
+                fFlags = 0
+            };
+            await ExecuteFileOperationAsync(fileOp);
+        }
+
+        /// <summary>
+        /// 刪除檔案或資料夾。不使用資源回收筒，但會顯示確認視窗。
+        /// </summary>
+        public static async Task Delete(List<FileSystemItem> sources)
+        {
+            var formattedSources = FormatPaths(sources);
+            var fileOp = new SHFILEOPSTRUCT
+            {
+                hwnd = IntPtr.Zero,
+                wFunc = FileOperationType.FO_DELETE,
+                pFrom = formattedSources,
+                fFlags = FileOperationFlags.FOF_WANTNUKEWARNING
+            };
+            await ExecuteFileOperationAsync(fileOp);
         }
     }
 }
